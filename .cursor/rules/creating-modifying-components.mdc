@@ -1,0 +1,7 @@
+---
+description: When creating and modifying components
+globs: src/
+---
+When creating or modifying components:
+- Use shadcn component library where possible
+- Add Lucide react icons where possible
