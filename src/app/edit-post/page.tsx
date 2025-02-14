@@ -1,6 +1,6 @@
-import { ContentForm } from "./_components/content-form"
+import { EditPostForm } from "./_components/edit-post-form"
 
-export default function EditPostPage() {
+export default function CreatePostPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -9,7 +9,7 @@ export default function EditPostPage() {
           Transform your ideas into engaging social media content.
         </p>
       </div>
-      <ContentForm />
+      <EditPostForm />
     </div>
   )
 } 
