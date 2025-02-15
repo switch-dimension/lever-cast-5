@@ -4,8 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { PenLine, ListTodo, Settings, LayoutTemplate, ChevronLeft, ChevronRight, Share2, UserCircle2 } from "lucide-react"
+import { PenLine, ListTodo, Settings, LayoutTemplate, ChevronLeft, ChevronRight, Share2 } from "lucide-react"
 import { useState } from "react"
+import { UserButton } from "@clerk/nextjs"
 
 const navItems = [
   {
@@ -76,18 +77,13 @@ export function Sidebar() {
       </nav>
       
       <div className="mt-auto">
-        <Link
-          href="/profile"
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-            "hover:bg-accent hover:text-accent-foreground",
-            "text-yellow-500",
-            isCollapsed && "justify-center"
-          )}
-        >
-          <UserCircle2 size={24} />
-          {!isCollapsed && <span className="text-foreground">Profile</span>}
-        </Link>
+        <div className={cn(
+          "flex items-center px-3 py-2",
+          isCollapsed && "justify-center"
+        )}>
+          <UserButton afterSignOutUrl="/" />
+          {!isCollapsed && <span className="ml-3 text-foreground">Profile</span>}
+        </div>
       </div>
     </div>
   )

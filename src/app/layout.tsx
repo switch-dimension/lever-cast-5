@@ -50,9 +50,6 @@ export default function RootLayout({
                     </div>
                   </SignedOut>
                   <SignedIn>
-                    <div className="flex justify-end mb-4">
-                      <UserButton afterSignOutUrl="/"/>
-                    </div>
                     {children}
                   </SignedIn>
                 </div>
