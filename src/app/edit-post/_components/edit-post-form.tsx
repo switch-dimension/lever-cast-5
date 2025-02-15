@@ -11,6 +11,7 @@ import { PlatformPreview } from "./platform-preview"
 import { ImageUpload } from "./image-upload"
 import { LinkedinIcon, TwitterIcon } from "lucide-react"
 import { toast } from "sonner"
+import { Label } from "@/components/ui/label"
 
 const TWITTER_MAX_LENGTH = 280
 
@@ -91,32 +92,40 @@ export function EditPostForm({ post }: EditPostFormProps) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Platforms</label>
-            <div className="flex gap-2">
-              <Button
-                variant={selectedPlatforms.includes("linkedin") ? "default" : "outline"}
-                size="sm"
-                onClick={() => togglePlatform("linkedin")}
-                className="gap-2"
-              >
-                <LinkedinIcon className="h-4 w-4" />
-                LinkedIn
-              </Button>
-              <Button
-                variant={selectedPlatforms.includes("twitter") ? "default" : "outline"}
-                size="sm"
-                onClick={() => togglePlatform("twitter")}
-                className="gap-2"
-              >
-                <TwitterIcon className="h-4 w-4" />
-                Twitter
-              </Button>
+            <div className="grid gap-4 pt-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="linkedin"
+                  checked={selectedPlatforms.includes("linkedin")}
+                  onChange={() => togglePlatform("linkedin")}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="linkedin" className="flex items-center gap-2">
+                  <LinkedinIcon className="h-4 w-4" />
+                  LinkedIn
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="twitter"
+                  checked={selectedPlatforms.includes("twitter")}
+                  onChange={() => togglePlatform("twitter")}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="twitter" className="flex items-center gap-2">
+                  <TwitterIcon className="h-4 w-4" />
+                  Twitter
+                </Label>
+              </div>
             </div>
           </div>
         </div>
       </Card>
 
       {selectedPlatforms.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-6">
           {selectedPlatforms.includes("linkedin") && (
             <PlatformPreview 
               platform="linkedin" 

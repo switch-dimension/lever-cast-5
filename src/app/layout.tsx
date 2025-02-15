@@ -33,7 +33,9 @@ export default function RootLayout({
           <div className="flex h-screen">
             <Sidebar />
             <main className="flex-1 overflow-y-auto p-8">
-              {children}
+              <div className="mx-auto w-full min-w-[320px] max-w-[min(90vw,_640px)] md:max-w-[min(75%,_640px)] lg:max-w-[min(60%,_640px)]">
+                {children}
+              </div>
             </main>
           </div>
           <Toaster />
