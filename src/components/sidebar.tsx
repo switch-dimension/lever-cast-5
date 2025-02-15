@@ -42,9 +42,9 @@ export function Sidebar() {
     )}>
       <div className="flex items-center justify-between mb-8">
         {!isCollapsed && (
-          <Link href="/posts" className="text-xl font-bold flex items-center gap-2">
-            LeverCast
+          <Link href="/posts" className="text-xl font-bold flex items-center gap-2 pl-3">
             <Share2 className="text-yellow-500" size={20} />
+            LeverCast
           </Link>
         )}
         <Button

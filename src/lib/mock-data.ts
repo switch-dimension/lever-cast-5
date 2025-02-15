@@ -1,6 +1,7 @@
 export type Template = {
     id: string
     name: string
+    description: string
     isDefault: boolean
     platforms: {
         platform: 'twitter' | 'linkedin'
@@ -12,6 +13,7 @@ export const mockTemplates: Template[] = [
     {
         id: '1',
         name: 'Professional Business Template',
+        description: 'Perfect for business and professional updates',
         isDefault: true,
         platforms: [
             {
@@ -27,6 +29,7 @@ export const mockTemplates: Template[] = [
     {
         id: '2',
         name: 'Casual Social Template',
+        description: 'Ideal for casual, engaging social media content',
         isDefault: false,
         platforms: [
             {
@@ -42,6 +45,7 @@ export const mockTemplates: Template[] = [
     {
         id: '3',
         name: 'Marketing Campaign Template',
+        description: 'Designed for marketing campaigns and promotions',
         isDefault: false,
         platforms: [
             {
