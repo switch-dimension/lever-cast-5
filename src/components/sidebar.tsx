@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { PenLine, ListTodo, Settings, LayoutTemplate, ChevronLeft, ChevronRight } from "lucide-react"
+import { PenLine, ListTodo, Settings, LayoutTemplate, ChevronLeft, ChevronRight, Share2, UserCircle2 } from "lucide-react"
 import { useState } from "react"
 
 const navItems = [
@@ -42,14 +42,15 @@ export function Sidebar() {
     )}>
       <div className="flex items-center justify-between mb-8">
         {!isCollapsed && (
-          <Link href="/dashboard" className="text-xl font-bold">
+          <Link href="/posts" className="text-xl font-bold flex items-center gap-2">
             LeverCast
+            <Share2 className="text-yellow-500" size={20} />
           </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto"
+          className="ml-auto text-yellow-500"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
@@ -64,18 +65,29 @@ export function Sidebar() {
             className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
               "hover:bg-accent hover:text-accent-foreground",
-              pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+              pathname === item.href ? "bg-accent text-accent-foreground" : "text-yellow-500",
               isCollapsed && "justify-center"
             )}
           >
             <item.icon size={20} />
-            {!isCollapsed && <span>{item.title}</span>}
+            {!isCollapsed && <span className="text-foreground">{item.title}</span>}
           </Link>
         ))}
       </nav>
       
       <div className="mt-auto">
-        {/* Profile section will go here */}
+        <Link
+          href="/profile"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+            "hover:bg-accent hover:text-accent-foreground",
+            "text-yellow-500",
+            isCollapsed && "justify-center"
+          )}
+        >
+          <UserCircle2 size={24} />
+          {!isCollapsed && <span className="text-foreground">Profile</span>}
+        </Link>
       </div>
     </div>
   )
