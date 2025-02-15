@@ -1,22 +1,59 @@
-export const mockTemplates = [
+export type Template = {
+    id: string
+    name: string
+    isDefault: boolean
+    platforms: {
+        platform: 'twitter' | 'linkedin'
+        systemPrompt: string
+    }[]
+}
+
+export const mockTemplates: Template[] = [
     {
-        id: 1,
-        name: "Professional Insight",
-        description: "Share your professional expertise with a thought-provoking insight",
-        platforms: ["linkedin"],
+        id: '1',
+        name: 'Professional Business Template',
+        isDefault: true,
+        platforms: [
+            {
+                platform: 'linkedin',
+                systemPrompt: 'Create a professional business post focusing on industry insights and thought leadership.'
+            },
+            {
+                platform: 'twitter',
+                systemPrompt: 'Create a concise, engaging business tweet with relevant hashtags.'
+            }
+        ]
     },
     {
-        id: 2,
-        name: "Quick Tip",
-        description: "Share a concise, actionable tip in your field",
-        platforms: ["twitter", "linkedin"],
+        id: '2',
+        name: 'Casual Social Template',
+        isDefault: false,
+        platforms: [
+            {
+                platform: 'linkedin',
+                systemPrompt: 'Create a friendly, conversational post that maintains professional tone.'
+            },
+            {
+                platform: 'twitter',
+                systemPrompt: 'Create a casual, engaging tweet with a friendly tone.'
+            }
+        ]
     },
     {
-        id: 3,
-        name: "Industry News",
-        description: "Comment on recent developments in your industry",
-        platforms: ["linkedin", "twitter"],
-    },
+        id: '3',
+        name: 'Marketing Campaign Template',
+        isDefault: false,
+        platforms: [
+            {
+                platform: 'linkedin',
+                systemPrompt: 'Create a marketing-focused post that highlights value propositions and includes a call to action.'
+            },
+            {
+                platform: 'twitter',
+                systemPrompt: 'Create a punchy marketing tweet with strong call to action.'
+            }
+        ]
+    }
 ]
 
 export const mockPosts = [
@@ -38,5 +75,4 @@ export const mockPosts = [
     },
 ]
 
-export type Template = typeof mockTemplates[0]
 export type Post = typeof mockPosts[0] 
