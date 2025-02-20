@@ -1,17 +1,22 @@
-import { Template, mockTemplates } from "@/lib/mock-data"
-import { EditTemplateForm } from "./_components/edit-template-form"
 import { notFound } from "next/navigation"
+import { TemplateForm } from "../../_components/template-form"
+import { platformService } from "@/services/platform.service"
+import { templateService } from "@/services/template.service"
 
-export default function EditTemplatePage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  // In a real app, this would be a database query
-  const template = mockTemplates.find(t => t.id === params.id)
+interface EditTemplatePageProps {
+  params: {
+    id: string
+  }
+}
+
+export default async function EditTemplatePage({ params }: EditTemplatePageProps) {
+  const [template, platforms] = await Promise.all([
+    templateService.getTemplate(params.id),
+    platformService.getAllPlatforms()
+  ])
 
   if (!template) {
-    return notFound()
+    notFound()
   }
 
   return (
@@ -19,10 +24,10 @@ export default function EditTemplatePage({
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Edit Template</h1>
         <p className="text-muted-foreground">
-          Modify your template settings and system prompts.
+          Update your content template and platform prompts.
         </p>
       </div>
-      <EditTemplateForm template={template} />
+      <TemplateForm template={template} availablePlatforms={platforms} />
     </div>
   )
 } 

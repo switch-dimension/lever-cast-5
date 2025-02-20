@@ -9,7 +9,7 @@ globs:
 - NO direct database connections or alternative clients (e.g., Supabase client, raw SQL)
 - All database operations MUST go through Prisma client
 - Keep database logic in dedicated service layers
-- Use the User Table id for referencing the user not the clerkId
+- Use the User Table "id" for referencing the user not the "clerkId"
 
 ## Database Access Pattern
 ```typescript

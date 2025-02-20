@@ -21,6 +21,7 @@
 ## Planning
 - Think step by step 
 - Give me options, pros and cons and your final recommendation
+- Challenge my assumptions 
 
 ## Security
 - Evaluate this for security risks 
