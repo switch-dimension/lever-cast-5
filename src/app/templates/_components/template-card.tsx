@@ -13,7 +13,28 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template, onEdit }: TemplateCardProps) {
-  const prompts = template.prompts as Record<string, string>
+  // Parse the prompts data properly
+  const getPromptContent = (platformId: string) => {
+    try {
+      const promptsData = template.prompts as any;
+      
+      // Handle array format
+      if (Array.isArray(promptsData)) {
+        const prompt = promptsData.find(p => p.platform === platformId);
+        return prompt?.content || '';
+      }
+      
+      // Handle object format
+      if (typeof promptsData === 'object' && promptsData !== null) {
+        return promptsData[platformId]?.content || promptsData[platformId] || '';
+      }
+      
+      return '';
+    } catch (error) {
+      console.error('Error parsing prompt content:', error);
+      return '';
+    }
+  };
 
   return (
     <Card className="relative group cursor-pointer hover:shadow-md transition-shadow" onClick={onEdit}>
@@ -45,7 +66,7 @@ export function TemplateCard({ template, onEdit }: TemplateCardProps) {
             </div>
             <Textarea
               placeholder="System prompt for content generation"
-              value={prompts[platform.id] || ''}
+              value={getPromptContent(platform.id)}
               readOnly
               className="h-24 resize-none bg-muted cursor-pointer"
               onClick={(e) => e.stopPropagation()}

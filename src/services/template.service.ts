@@ -1,16 +1,29 @@
 import { prisma } from '@/lib/prisma';
 import { Template, SocialMediaPlatform } from '@prisma/client';
 
+export type TemplatePrompt = {
+    content: string;
+    type: 'text' | 'image' | 'video';
+    platform: string;
+    settings?: Record<string, string | number | boolean | null>;
+}
+
 export type CreateTemplateInput = {
     name: string;
     description?: string;
-    prompts: Record<string, any>;
+    prompts: Record<string, TemplatePrompt>;
     authorId: string;
-    platformIds: string[];
+    platformIds?: string[];
 };
 
 export type UpdateTemplateInput = Partial<Omit<CreateTemplateInput, 'authorId'>> & {
     id: string;
+};
+
+type TemplateUpdateData = Omit<UpdateTemplateInput, 'id' | 'platformIds'> & {
+    platforms?: {
+        set: { id: string }[];
+    };
 };
 
 export type TemplateWithPlatforms = Template & {
@@ -26,9 +39,9 @@ export const templateService = {
                 description: data.description,
                 prompts: data.prompts,
                 authorId: data.authorId,
-                platforms: {
+                platforms: data.platformIds ? {
                     connect: data.platformIds.map(id => ({ id }))
-                }
+                } : undefined
             },
             include: {
                 platforms: true,
@@ -62,20 +75,20 @@ export const templateService = {
 
     // Update a template
     async updateTemplate(data: UpdateTemplateInput): Promise<TemplateWithPlatforms> {
-        const updateData: any = { ...data };
-        delete updateData.id;
-        delete updateData.platformIds;
+        const { id, platformIds, ...updateData } = data;
+
+        const templateUpdate: TemplateUpdateData = {
+            ...updateData,
+            ...(platformIds && {
+                platforms: {
+                    set: platformIds.map(id => ({ id }))
+                }
+            })
+        };
 
         const template = await prisma.template.update({
-            where: { id: data.id },
-            data: {
-                ...updateData,
-                ...(data.platformIds && {
-                    platforms: {
-                        set: data.platformIds.map(id => ({ id }))
-                    }
-                })
-            },
+            where: { id },
+            data: templateUpdate,
             include: {
                 platforms: true,
                 author: true

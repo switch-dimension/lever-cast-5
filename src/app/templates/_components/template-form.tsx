@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Template, SocialMediaPlatform } from "@prisma/client"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -31,10 +31,19 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   platformIds: z.array(z.string()).min(1, "Select at least one platform"),
-  prompts: z.record(z.string(), z.string()),
+  prompts: z.record(z.string(), z.object({
+    content: z.string(),
+    type: z.enum(['text', 'image', 'video']),
+    platform: z.string()
+  }))
 })
 
 type FormData = z.infer<typeof formSchema>
+type PromptType = {
+  content: string;
+  type: 'text' | 'image' | 'video';
+  platform: string;
+}
 
 interface TemplateFormProps {
   template?: Template & { platforms: SocialMediaPlatform[] }
@@ -45,15 +54,113 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
+  useEffect(() => {
+    if (template) {
+      console.log('Template data:', {
+        template,
+        prompts: template.prompts
+      });
+    }
+  }, [template]);
+
+  const initialPrompts = useMemo(() => {
+    if (!template?.prompts) return {};
+    
+    try {
+      const rawPrompts = template.prompts as any;
+      
+      // If it's already in the correct object format
+      if (typeof rawPrompts === 'object' && !Array.isArray(rawPrompts)) {
+        return Object.entries(rawPrompts).reduce((acc, [platformId, prompt]) => {
+          if (typeof prompt === 'object' && prompt !== null) {
+            acc[platformId] = {
+              content: String(prompt.content || ''),
+              type: prompt.type || 'text',
+              platform: prompt.platform || 'unknown'
+            };
+          } else {
+            acc[platformId] = {
+              content: String(prompt),
+              type: 'text',
+              platform: 'unknown'
+            };
+          }
+          return acc;
+        }, {} as Record<string, PromptType>);
+      }
+      
+      // If it's an array, convert to object format using platform IDs
+      if (Array.isArray(rawPrompts)) {
+        return rawPrompts.reduce((acc, prompt, index) => {
+          const platformId = template.platforms[index]?.id;
+          if (!platformId) return acc;
+
+          if (typeof prompt === 'object' && prompt !== null) {
+            acc[platformId] = {
+              content: String(prompt.content || ''),
+              type: prompt.type || 'text',
+              platform: prompt.platform || template.platforms[index].name.toLowerCase()
+            };
+          } else {
+            acc[platformId] = {
+              content: String(prompt),
+              type: 'text',
+              platform: template.platforms[index].name.toLowerCase()
+            };
+          }
+          return acc;
+        }, {} as Record<string, PromptType>);
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Error parsing prompts:', error);
+      return {};
+    }
+  }, [template]);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: template?.name || "",
       description: template?.description || "",
       platformIds: template?.platforms.map(p => p.id) || [],
-      prompts: (template?.prompts as Record<string, string>) || {},
+      prompts: initialPrompts,
     },
   })
+
+  const selectedPlatformIds = form.watch("platformIds")
+
+  useEffect(() => {
+    const currentValues = form.getValues();
+    const newPrompts: Record<string, PromptType> = {};
+    
+    selectedPlatformIds.forEach((platformId) => {
+      const platform = availablePlatforms.find(p => p.id === platformId);
+      if (!platform) return;
+
+      const platformName = platform.name.toLowerCase();
+      
+      // Keep existing prompt if available
+      if (currentValues.prompts?.[platformId]) {
+        newPrompts[platformId] = currentValues.prompts[platformId];
+      } else {
+        // Create new prompt
+        newPrompts[platformId] = {
+          content: '',
+          type: 'text',
+          platform: platformName
+        };
+      }
+    });
+
+    form.setValue('prompts', newPrompts, { shouldValidate: true });
+  }, [selectedPlatformIds, availablePlatforms, form]);
+
+  const formValues = form.watch();
+  useEffect(() => {
+    console.log('Form values:', formValues);
+  }, [formValues]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -62,6 +169,8 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
         ? `/api/templates/${template.id}`
         : "/api/templates"
       const method = template ? "PATCH" : "POST"
+
+      console.log('Submitting template data:', data)
 
       const response = await fetch(url, {
         method,
@@ -72,8 +181,17 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
       })
 
       if (!response.ok) {
-        throw new Error("Failed to save template")
+        const errorText = await response.text()
+        console.error('Server response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        })
+        throw new Error(errorText || "Failed to save template")
       }
+
+      const result = await response.json()
+      console.log('Template saved successfully:', result)
 
       toast.success(
         template
@@ -83,14 +201,12 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
       router.push("/templates")
       router.refresh()
     } catch (error) {
-      toast.error("Something went wrong")
-      console.error(error)
+      console.error('Template submission error:', error)
+      toast.error(error instanceof Error ? error.message : "Failed to save template")
     } finally {
       setIsLoading(false)
     }
   }
-
-  const selectedPlatformIds = form.watch("platformIds")
 
   return (
     <Form {...form}>
@@ -167,29 +283,42 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
             {selectedPlatformIds.map((platformId) => {
               const platform = availablePlatforms.find(
                 (p) => p.id === platformId
-              )
-              if (!platform) return null
+              );
+              if (!platform) return null;
 
               return (
                 <FormField
                   key={platformId}
                   control={form.control}
                   name={`prompts.${platformId}`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{platform.name} Prompt</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder={`Enter prompt for ${platform.name}`}
-                          className="h-32"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field: { value, onChange, ...field } }) => {
+                    const promptContent = value?.content || '';
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>{platform.name} Prompt</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={`Enter prompt for ${platform.name}`}
+                            className="h-32"
+                            value={promptContent}
+                            onChange={(e) => {
+                              const newValue: PromptType = {
+                                content: e.target.value,
+                                type: 'text',
+                                platform: platform.name.toLowerCase()
+                              };
+                              onChange(newValue);
+                            }}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
-              )
+              );
             })}
           </div>
 

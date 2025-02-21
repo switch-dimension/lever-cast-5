@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { SocialMediaPlatform, UserPlatformSettings } from '@prisma/client';
 
+export type PlatformSettings = {
+    [key: string]: string | number | boolean | null;
+}
+
 export type CreatePlatformInput = {
     name: string;
 };
@@ -8,7 +12,7 @@ export type CreatePlatformInput = {
 export type UserPlatformSettingInput = {
     userId: string;
     platformId: string;
-    settings: Record<string, any>;
+    settings: PlatformSettings;
 };
 
 export const platformService = {

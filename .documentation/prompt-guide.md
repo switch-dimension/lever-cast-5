@@ -9,6 +9,7 @@
 - Give me an alternate treatment for this component 
 - Make this component more user 
 - Are we thinking about accessibility?
+- Instead of telling the model what to do even when you know what should be done, ask the model what it thinks should be done
 
 ## Error Handling
 - Fix

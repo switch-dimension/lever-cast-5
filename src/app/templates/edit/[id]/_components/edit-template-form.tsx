@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Template, mockTemplates } from "@/lib/mock-data"
+import { Template } from "@/lib/mock-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,7 +58,8 @@ export function EditTemplateForm({ template: initialTemplate }: EditTemplateForm
       router.push("/templates")
       router.refresh()
     } catch (error) {
-      toast.error("Failed to save template")
+      console.error('Failed to update template:', error)
+      toast.error("Failed to update template. Please try again.")
     } finally {
       setIsSaving(false)
     }

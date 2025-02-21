@@ -9,8 +9,7 @@ import {
   ClerkProvider,
   SignInButton,
   SignedIn,
-  SignedOut,
-  UserButton
+  SignedOut
 } from '@clerk/nextjs';
 
 const inter = Inter({ subsets: ["latin"] });
