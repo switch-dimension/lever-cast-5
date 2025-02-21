@@ -1,20 +1,30 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { platformService } from '@/services/platform.service';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
     try {
-        const { userId } = await auth();
+        const { userId: clerkId } = await auth();
 
-        if (!userId) {
+        if (!clerkId) {
             return new NextResponse('Unauthorized', { status: 401 });
+        }
+
+        // Get the database user ID
+        const user = await prisma.user.findUnique({
+            where: { clerkId }
+        });
+
+        if (!user) {
+            return new NextResponse('User not found', { status: 404 });
         }
 
         const platforms = await platformService.getAllPlatforms();
         return NextResponse.json(platforms);
     } catch (error) {
-        console.error('[PLATFORMS_GET]', error);
-        return new NextResponse('Internal Error', { status: 500 });
+        console.error('Error fetching platforms:', error);
+        return new NextResponse('Internal Server Error', { status: 500 });
     }
 }
 

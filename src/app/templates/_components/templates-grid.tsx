@@ -5,10 +5,27 @@ import { TemplateCard } from "./template-card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { SocialMediaPlatform } from "@prisma/client"
 
 export function TemplatesGrid() {
   const router = useRouter()
   const { templates, isLoading, error } = useTemplates()
+  const [platforms, setPlatforms] = useState<SocialMediaPlatform[]>([])
+
+  useEffect(() => {
+    const fetchPlatforms = async () => {
+      try {
+        const response = await fetch('/api/platforms');
+        if (!response.ok) throw new Error('Failed to fetch platforms');
+        const data = await response.json();
+        setPlatforms(data);
+      } catch (error) {
+        console.error('Error fetching platforms:', error);
+      }
+    };
+    fetchPlatforms();
+  }, []);
 
   if (isLoading) {
     return <div>Loading templates...</div>
@@ -39,6 +56,7 @@ export function TemplatesGrid() {
             <TemplateCard
               key={template.id}
               template={template}
+              availablePlatforms={platforms}
               onEdit={() => router.push(`/templates/edit/${template.id}`)}
             />
           ))

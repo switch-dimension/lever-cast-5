@@ -30,9 +30,8 @@ import { toast } from "sonner"
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  platformIds: z.array(z.string()).min(1, "Select at least one platform"),
   prompts: z.record(z.string(), z.object({
-    content: z.string(),
+    content: z.string().optional(),
     type: z.enum(['text', 'image', 'video']),
     platform: z.string()
   }))
@@ -40,7 +39,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 type PromptType = {
-  content: string;
+  content?: string;
   type: 'text' | 'image' | 'video';
   platform: string;
 }
@@ -67,52 +66,24 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
     if (!template?.prompts) return {};
     
     try {
-      const rawPrompts = template.prompts as any;
+      const rawPrompts = template.prompts as Record<string, any>;
       
-      // If it's already in the correct object format
-      if (typeof rawPrompts === 'object' && !Array.isArray(rawPrompts)) {
-        return Object.entries(rawPrompts).reduce((acc, [platformId, prompt]) => {
-          if (typeof prompt === 'object' && prompt !== null) {
-            acc[platformId] = {
-              content: String(prompt.content || ''),
-              type: prompt.type || 'text',
-              platform: prompt.platform || 'unknown'
-            };
-          } else {
-            acc[platformId] = {
-              content: String(prompt),
-              type: 'text',
-              platform: 'unknown'
-            };
-          }
-          return acc;
-        }, {} as Record<string, PromptType>);
-      }
-      
-      // If it's an array, convert to object format using platform IDs
-      if (Array.isArray(rawPrompts)) {
-        return rawPrompts.reduce((acc, prompt, index) => {
-          const platformId = template.platforms[index]?.id;
-          if (!platformId) return acc;
-
-          if (typeof prompt === 'object' && prompt !== null) {
-            acc[platformId] = {
-              content: String(prompt.content || ''),
-              type: prompt.type || 'text',
-              platform: prompt.platform || template.platforms[index].name.toLowerCase()
-            };
-          } else {
-            acc[platformId] = {
-              content: String(prompt),
-              type: 'text',
-              platform: template.platforms[index].name.toLowerCase()
-            };
-          }
-          return acc;
-        }, {} as Record<string, PromptType>);
-      }
-
-      return {};
+      return Object.entries(rawPrompts).reduce((acc, [platformId, prompt]) => {
+        if (typeof prompt === 'object' && prompt !== null) {
+          acc[platformId] = {
+            content: String((prompt as any).content || ''),
+            type: ((prompt as any).type as PromptType['type']) || 'text',
+            platform: String((prompt as any).platform || 'unknown')
+          };
+        } else {
+          acc[platformId] = {
+            content: String(prompt || ''),
+            type: 'text',
+            platform: 'unknown'
+          };
+        }
+        return acc;
+      }, {} as Record<string, PromptType>);
     } catch (error) {
       console.error('Error parsing prompts:', error);
       return {};
@@ -122,40 +93,18 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: template?.name || "",
-      description: template?.description || "",
-      platformIds: template?.platforms.map(p => p.id) || [],
-      prompts: initialPrompts,
-    },
+      name: template?.name ?? "",
+      description: template?.description ?? "",
+      prompts: template?.prompts ?? availablePlatforms.reduce((acc, platform) => ({
+        ...acc,
+        [platform.id]: {
+          content: "",
+          type: "text" as const,
+          platform: platform.name.toLowerCase()
+        }
+      }), {})
+    }
   })
-
-  const selectedPlatformIds = form.watch("platformIds")
-
-  useEffect(() => {
-    const currentValues = form.getValues();
-    const newPrompts: Record<string, PromptType> = {};
-    
-    selectedPlatformIds.forEach((platformId) => {
-      const platform = availablePlatforms.find(p => p.id === platformId);
-      if (!platform) return;
-
-      const platformName = platform.name.toLowerCase();
-      
-      // Keep existing prompt if available
-      if (currentValues.prompts?.[platformId]) {
-        newPrompts[platformId] = currentValues.prompts[platformId];
-      } else {
-        // Create new prompt
-        newPrompts[platformId] = {
-          content: '',
-          type: 'text',
-          platform: platformName
-        };
-      }
-    });
-
-    form.setValue('prompts', newPrompts, { shouldValidate: true });
-  }, [selectedPlatformIds, availablePlatforms, form]);
 
   const formValues = form.watch();
   useEffect(() => {
@@ -177,7 +126,15 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          prompts: Object.entries(data.prompts).reduce((acc, [platformId, prompt]) => {
+            if (prompt.content?.trim()) {
+              acc[platformId] = prompt;
+            }
+            return acc;
+          }, {} as Record<string, PromptType>)
+        }),
       })
 
       if (!response.ok) {
@@ -243,63 +200,25 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="platformIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Platforms</FormLabel>
-                  <Select
-                    value={field.value.join(",")}
-                    onValueChange={(value) =>
-                      field.onChange(value ? value.split(",") : [])
-                    }
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select platforms" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availablePlatforms.map((platform) => (
-                        <SelectItem
-                          key={platform.id}
-                          value={platform.id}
-                        >
-                          {platform.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <h3 className="text-lg font-medium">Platform Prompts</h3>
-            {selectedPlatformIds.map((platformId) => {
-              const platform = availablePlatforms.find(
-                (p) => p.id === platformId
-              );
-              if (!platform) return null;
-
-              return (
+            <div className="grid gap-6">
+              {availablePlatforms.map((platform) => (
                 <FormField
-                  key={platformId}
+                  key={platform.id}
                   control={form.control}
-                  name={`prompts.${platformId}`}
+                  name={`prompts.${platform.id}`}
                   render={({ field: { value, onChange, ...field } }) => {
-                    const promptContent = value?.content || '';
+                    const promptContent = value?.content ?? '';
                     
                     return (
                       <FormItem>
                         <FormLabel>{platform.name} Prompt</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder={`Enter prompt for ${platform.name}`}
+                            placeholder={`Enter prompt for ${platform.name} (optional)`}
                             className="h-32"
                             value={promptContent}
                             onChange={(e) => {
@@ -318,24 +237,19 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
                     );
                   }}
                 />
-              );
-            })}
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : template ? "Update" : "Create"}
-            </Button>
+              ))}
+            </div>
           </div>
         </Card>
+
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={!form.formState.isValid || form.formState.isSubmitting || isLoading}
+          >
+            {isLoading ? "Saving..." : template ? "Update Template" : "Create Template"}
+          </Button>
+        </div>
       </form>
     </Form>
   )

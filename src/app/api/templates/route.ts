@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { templateService } from '@/services/template.service';
 import { prisma } from '@/lib/prisma';
+import * as z from 'zod';
+
+const templateSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    description: z.string().optional(),
+    prompts: z.record(z.string(), z.object({
+        content: z.string().optional(),
+        type: z.enum(['text', 'image', 'video']),
+        platform: z.string()
+    }))
+});
 
 export async function GET() {
     try {
@@ -48,14 +59,20 @@ export async function POST(req: Request) {
         const data = await req.json();
         console.log('Received template data:', data);
 
-        if (!data.name || !data.platformIds || !Array.isArray(data.platformIds)) {
-            console.error('Invalid template data:', data);
-            return new NextResponse('Invalid template data', { status: 400 });
+        // Validate the incoming data
+        const validationResult = templateSchema.safeParse(data);
+        if (!validationResult.success) {
+            console.error('Template validation failed:', validationResult.error);
+            return new NextResponse('Invalid template data: ' + validationResult.error.message, { status: 400 });
         }
+
+        // Extract platform IDs from the prompts - include all platforms
+        const platformIds = Object.keys(data.prompts);
 
         const template = await templateService.createTemplate({
             ...data,
-            authorId: user.id, // Use the database user ID instead of Clerk ID
+            authorId: user.id,
+            platformIds
         });
 
         return NextResponse.json(template, { status: 201 });
