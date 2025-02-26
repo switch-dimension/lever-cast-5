@@ -11,17 +11,17 @@ To start working from a specific course module, you can checkout the correspondi
    cd lever-cast-5
    ```
 
-2. List all available module checkpoints:
+2. List all available module tagged checkpoints (every commit has a hash and message and I'm also tagging selected points with a tage name I recommend you use)
    ```bash
    git tag
    ```
 
-3. Checkout the desired module checkpoint as a new branch:
+3. Checkout the desired module checkpoint as a new branch:(Creating a new branch which you can name yourself. This allows you to work on a specific module without affecting other modules, or just download the whole project and start from the latest commit, or just use the project whole as reference)
    ```bash
    git checkout -b <new_branch_name> <tag_name>
    ```
 
-4. Install dependencies for that version:
+4. Install dependencies for that version: (This installs all the modules we need from the cloud for the project "Dependencies")
    ```bash
    npm install
    ```
@@ -32,8 +32,6 @@ Note: Make sure to commit or stash any changes before checking out a different c
 
 Latest Recommended checkpoints:
 - tag "template-create-module" Commit Hash: `7852a9b30769dbb118aca129140819a2682f080f`: Feature: Enhance platform preview (This is the latest checkpoint at the Templates setup Lesson)
-
-
 
 # LeverCast
 
