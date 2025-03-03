@@ -1,6 +1,9 @@
 
 # Build With AI Students
 
+> 👩‍🎓 This is the repository for the LeverCast project. It is not complete and is still under development. It does not contain any seed files for the database and is not in a fully working state. It is only meant to be used as a reference for the course. As the final modueles are released, I will update the repository with the final files.
+
+
 ## Course Module Checkpoints
 
 To start working from a specific course module, you can checkout the corresponding commit. Follow these steps:
