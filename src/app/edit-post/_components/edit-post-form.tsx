@@ -230,10 +230,10 @@ export function EditPostForm({ post }: EditPostFormProps) {
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating platform-specific content...
+                Generating content...
               </>
             ) : (
-              "Generate platform-specific content"
+              "Generate content"
             )}
           </Button>
 
@@ -258,7 +258,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Platforms</label>
-            <div className="grid gap-4 pt-2">
+            <div className="flex flex-wrap gap-4 pt-2">
               {isLoadingPlatforms ? (
                 <div>Loading platforms...</div>
               ) : (
