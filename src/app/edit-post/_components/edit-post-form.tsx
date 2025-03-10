@@ -52,6 +52,14 @@ export function EditPostForm({ post }: EditPostFormProps) {
     }
   }, [platforms, post])
 
+  // Automatically select the first template when templates are loaded
+  useEffect(() => {
+    if (templates.length > 0 && !selectedTemplate && !post?.template) {
+      console.log("Setting default template:", templates[0].id)
+      setSelectedTemplate(templates[0].id)
+    }
+  }, [templates, selectedTemplate, post?.template])
+
   const togglePlatform = (platformId: string) => {
     console.log("Toggling platform", { platformId })
     setSelectedPlatforms(prev => {
@@ -195,11 +203,6 @@ export function EditPostForm({ post }: EditPostFormProps) {
                 )}
               </SelectContent>
             </Select>
-            {selectedTemplate && (
-              <p className="text-sm text-muted-foreground">
-                {templates.find(t => t.id === selectedTemplate)?.description}
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -211,7 +214,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
               onChange={(e) => setContent(e.target.value)}
             />
             {isTwitterSelected && (
-              <div className={`text-sm ${isContentTooLong ? "text-destructive" : "text-muted-foreground"}`}>
+              <div className="text-sm text-muted-foreground">
                 {content.length}/{TWITTER_MAX_LENGTH} characters
               </div>
             )}

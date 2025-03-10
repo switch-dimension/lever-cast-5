@@ -15,23 +15,24 @@ Tasks are ordered chronologically from top to bottom.
 - Post editing functionality implemented
 - Image upload component created
 - Platform preview components developed
+- Database setup with Prisma
+- Authentication system implementation with Clerk
+- Template system design and implementation
+- OpenAI completions integration
+- Platform-specific formatting options
+- Real-time preview updates
+- Clerk-Supabase integration
 
 ## Pending Tasks 
 Tasks are prioritized by their order in the associated list. 
 
-- Template system design and implementation
+- Edit post improve design of page
 - Social media preview system enhancement
-- Authentication system implementation
-- Finish UI design before implementing backend
-- Database setup with Prisma
-- Clerk-Supabase integration
-- OpenAI completions integration
 - Social media API integrations
-- Real-time preview updates
 - Error handling and loading states
 - Analytics and tracking implementation
-- Platform-specific formatting options
 - Mobile responsiveness improvements
+- Finish UI design refinements
 
 ## Backlog Tasks
 Tasks are prioritized by their order in the associated list. 

@@ -37,7 +37,7 @@ export function Sidebar() {
 
   return (
     <div className={cn(
-      "relative flex flex-col h-screen px-3 py-4 border-r",
+      "relative flex flex-col h-screen px-3 py-4 border-r bg-zinc-800 border-zinc-500",
       isCollapsed ? "w-16" : "w-64",
       "transition-all duration-300"
     )}>
@@ -59,21 +59,24 @@ export function Sidebar() {
       </div>
       
       <nav className="space-y-2">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              pathname === item.href ? "bg-accent text-accent-foreground" : "text-yellow-500",
-              isCollapsed && "justify-center"
-            )}
-          >
-            <item.icon size={20} />
-            {!isCollapsed && <span className="text-foreground">{item.title}</span>}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                "hover:bg-accent hover:text-black",
+                isActive ? "bg-accent text-black" : "text-yellow-500",
+                isCollapsed && "justify-center"
+              )}
+            >
+              <item.icon size={20} className={isActive ? "text-black" : ""} />
+              {!isCollapsed && <span className={isActive ? "text-black" : "text-foreground"}>{item.title}</span>}
+            </Link>
+          );
+        })}
       </nav>
       
       <div className="mt-auto">

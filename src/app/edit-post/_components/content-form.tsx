@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,6 +17,13 @@ export function ContentForm() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("")
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [image, setImage] = useState<string | null>(null)
+
+  // Automatically select the first template when component mounts
+  useEffect(() => {
+    if (mockTemplates.length > 0 && !selectedTemplate) {
+      setSelectedTemplate(mockTemplates[0].name)
+    }
+  }, [selectedTemplate])
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms(prev => 
@@ -47,11 +54,6 @@ export function ContentForm() {
                 ))}
               </SelectContent>
             </Select>
-            {selectedTemplate && (
-              <p className="text-sm text-muted-foreground">
-                {mockTemplates.find(t => t.name === selectedTemplate)?.description}
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -63,7 +65,7 @@ export function ContentForm() {
               onChange={(e) => setContent(e.target.value)}
             />
             {isTwitterSelected && (
-              <div className={`text-sm ${isContentTooLong ? "text-destructive" : "text-muted-foreground"}`}>
+              <div className="text-sm text-muted-foreground">
                 {content.length}/{TWITTER_MAX_LENGTH} characters
               </div>
             )}
