@@ -1,6 +1,7 @@
 ---
 description: Apply this rule when working with database operations, creating database queries, setting up database connections, or integrating authentication with database operations
 globs: 
+alwaysApply: false
 ---
  # Database Integration Rules
 
@@ -10,6 +11,7 @@ globs:
 - All database operations MUST go through Prisma client
 - Keep database logic in dedicated service layers
 - Use the User Table "id" for referencing the user not the "clerkId"
+- Use the pattern of API > Services Don't use Server Actions
 
 ## Database Access Pattern
 ```typescript

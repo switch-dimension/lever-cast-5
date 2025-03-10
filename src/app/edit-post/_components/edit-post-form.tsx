@@ -154,6 +154,50 @@ export function EditPostForm({ post }: EditPostFormProps) {
   
   const isContentTooLong = isTwitterSelected && content.length > TWITTER_MAX_LENGTH
 
+  const handleSavePost = async () => {
+    if (!content) {
+      toast.error("Please enter some content to save")
+      return
+    }
+    
+    setIsSaving(true)
+    setError(null)
+    
+    try {
+      // Call the API to save the post
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content,
+          templateId: selectedTemplate || undefined,
+          platformIds: selectedPlatforms,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save post');
+      }
+      
+      const data = await response.json();
+      console.log('Post saved:', data);
+      toast.success('Post saved as draft');
+      
+      // Optionally redirect to posts page
+      // router.push('/posts');
+    } catch (error) {
+      console.error('Error saving post:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save post';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true)
     // Simulate API call
@@ -220,22 +264,41 @@ export function EditPostForm({ post }: EditPostFormProps) {
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleGenerateContent}
-            disabled={!content || selectedPlatforms.length === 0 || isGenerating}
-            className="w-full"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating content...
-              </>
-            ) : (
-              "Generate content"
-            )}
-          </Button>
+          <div className="flex gap-4 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSavePost}
+              disabled={!content || isSaving}
+              className="flex-1"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Post"
+              )}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGenerateContent}
+              disabled={!content || selectedPlatforms.length === 0 || isGenerating}
+              className="flex-1"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating content...
+                </>
+              ) : (
+                "Generate content"
+              )}
+            </Button>
+          </div>
 
           {error && (
             <div className="text-sm text-destructive">
