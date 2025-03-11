@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation"
-import { mockPosts } from "@/lib/mock-data"
 import { EditPostForm } from "../_components/edit-post-form"
 
 interface EditPostPageProps {
@@ -9,12 +8,6 @@ interface EditPostPageProps {
 }
 
 export default function EditPostPage({ params }: EditPostPageProps) {
-  const post = mockPosts.find(p => p.id === parseInt(params.id))
-
-  if (!post) {
-    notFound()
-  }
-
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4">
       <div>
@@ -23,7 +16,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
           Make changes to your social media content.
         </p>
       </div>
-      <EditPostForm post={post} />
+      <EditPostForm postId={params.id} />
     </div>
   )
 } 

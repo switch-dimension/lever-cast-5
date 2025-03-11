@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { type Post as MockPost } from "@/lib/mock-data"
 import { PlatformPreview } from "./platform-preview"
 import { ImageUpload } from "./image-upload"
 import { LinkedinIcon, TwitterIcon, FacebookIcon, InstagramIcon, Loader2 } from "lucide-react"
@@ -15,34 +14,37 @@ import { Label } from "@/components/ui/label"
 import { useTemplates } from "@/hooks/use-templates"
 import { usePlatforms } from "@/hooks/use-platforms"
 import { transformContent } from "@/app/actions/transform-content"
+import { Post } from "@prisma/client"
 
 const TWITTER_MAX_LENGTH = 280
 
 // Extended Post type to include platformContents
-interface Post extends MockPost {
+interface PostWithPlatformContent extends Post {
   platformContents?: Array<{
     id: string;
     platformId: string;
     content: string;
+    platform?: {
+      id: string;
+      name: string;
+    };
   }>;
 }
 
 interface EditPostFormProps {
-  post?: Post // Optional for new posts
+  post?: PostWithPlatformContent; // For direct post object passing
+  postId?: string; // For fetching post by ID
 }
 
-export function EditPostForm({ post }: EditPostFormProps) {
-  console.log("EditPostForm rendered", { post })
-  
+export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
   const router = useRouter()
   const { templates, isLoading: isLoadingTemplates } = useTemplates()
   const { platforms, isLoading: isLoadingPlatforms } = usePlatforms()
   
-  console.log("Templates loaded:", { templates, isLoadingTemplates })
-  console.log("Platforms loaded:", { platforms, isLoadingPlatforms })
-  
-  const [content, setContent] = useState(post?.content ?? "")
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(post?.template ?? "")
+  const [post, setPost] = useState<PostWithPlatformContent | null>(initialPost || null)
+  const [isLoading, setIsLoading] = useState(!!postId && !initialPost)
+  const [content, setContent] = useState("")
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("")
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [image, setImage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -51,44 +53,64 @@ export function EditPostForm({ post }: EditPostFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
 
-  // Set all platforms as selected by default
+  // Fetch post data if postId is provided
   useEffect(() => {
-    console.log("useEffect for setting default platforms", { platforms, post })
-    if (platforms.length > 0 && !post) {
-      const platformIds = platforms.map(p => p.id)
-      console.log("Setting default selected platforms:", platformIds)
-      setSelectedPlatforms(platformIds)
-    }
-  }, [platforms, post])
+    const fetchPost = async () => {
+      if (!postId) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/posts/${postId}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            toast.error("Post not found");
+            router.push("/posts");
+            return;
+          }
+          throw new Error("Failed to fetch post");
+        }
+        
+        const data = await response.json();
+        setPost(data.post);
+      } catch (error) {
+        console.error("Error fetching post:", error);
+        toast.error("Failed to load post");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Load platform-specific content when editing an existing post
+    if (postId && !initialPost) {
+      fetchPost();
+    }
+  }, [postId, initialPost, router]);
+
+  // Initialize form values when post data is available
   useEffect(() => {
-    if (post?.platformContents && post.platformContents.length > 0) {
-      console.log("Loading platform-specific content from existing post:", post.platformContents);
+    if (post) {
+      setContent(post.content || "");
+      setSelectedTemplate(post.templateId || "");
       
-      const loadedPlatformContent: Record<string, string> = {};
-      post.platformContents.forEach((pc: any) => {
-        console.log(`Loading content for platform ${pc.platformId}:`, pc.content);
-        loadedPlatformContent[pc.platformId] = pc.content;
-      });
-      
-      console.log("Loaded platform content:", loadedPlatformContent);
-      setPlatformContent(loadedPlatformContent);
-      
-      // Also set selected platforms based on the post's platform content
-      const platformIds = post.platformContents.map((pc: any) => pc.platformId);
-      console.log("Setting selected platforms from post:", platformIds);
+      // Extract platform IDs from platformContents
+      const platformIds = post.platformContents?.map(pc => pc.platformId) || [];
       setSelectedPlatforms(platformIds);
+      
+      // Initialize platform-specific content
+      const platformContentMap: Record<string, string> = {};
+      post.platformContents?.forEach(pc => {
+        platformContentMap[pc.platformId] = pc.content;
+      });
+      setPlatformContent(platformContentMap);
     }
   }, [post]);
 
   // Automatically select the first template when templates are loaded
   useEffect(() => {
-    if (templates.length > 0 && !selectedTemplate && !post?.template) {
-      console.log("Setting default template:", templates[0].id)
-      setSelectedTemplate(templates[0].id)
+    if (templates && templates.length > 0 && !selectedTemplate && !post?.templateId) {
+      setSelectedTemplate(templates[0].id);
     }
-  }, [templates, selectedTemplate, post?.template])
+  }, [templates, selectedTemplate, post?.templateId]);
 
   // Add a useEffect to log platform content changes
   useEffect(() => {
@@ -96,15 +118,14 @@ export function EditPostForm({ post }: EditPostFormProps) {
   }, [platformContent]);
 
   const togglePlatform = (platformId: string) => {
-    console.log("Toggling platform", { platformId })
-    setSelectedPlatforms(prev => {
-      const newSelection = prev.includes(platformId) 
-        ? prev.filter(p => p !== platformId)
-        : [...prev, platformId]
-      console.log("New platform selection:", newSelection)
-      return newSelection
-    })
-  }
+    setSelectedPlatforms((prev: string[]) => {
+      if (prev.includes(platformId)) {
+        return prev.filter(id => id !== platformId);
+      } else {
+        return [...prev, platformId];
+      }
+    });
+  };
 
   const handleGenerateContent = async () => {
     console.log("=== GENERATE CONTENT STARTED ===")
@@ -281,6 +302,17 @@ export function EditPostForm({ post }: EditPostFormProps) {
       default:
         return null
     }
+  }
+
+  if (isLoading || isLoadingPlatforms || isLoadingTemplates) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading post data...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
