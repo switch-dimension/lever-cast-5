@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { templateService } from '@/services/template.service';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
-    req: Request,
-    { params }: { params: { id: string } }
-) {
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
     try {
+        const { id } = await params;
         const { userId: clerkId } = await auth();
 
         if (!clerkId) {
@@ -23,7 +24,7 @@ export async function GET(
             return new NextResponse('User not found', { status: 404 });
         }
 
-        const template = await templateService.getTemplate(params.id);
+        const template = await templateService.getTemplate(id);
 
         if (!template) {
             return new NextResponse('Not Found', { status: 404 });
@@ -41,10 +42,11 @@ export async function GET(
 }
 
 export async function PATCH(
-    req: Request,
-    { params }: { params: { id: string } }
-) {
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
     try {
+        const { id } = await params;
         const { userId: clerkId } = await auth();
 
         if (!clerkId) {
@@ -60,7 +62,7 @@ export async function PATCH(
             return new NextResponse('User not found', { status: 404 });
         }
 
-        const template = await templateService.getTemplate(params.id);
+        const template = await templateService.getTemplate(id);
 
         if (!template) {
             return new NextResponse('Not Found', { status: 404 });
@@ -70,9 +72,9 @@ export async function PATCH(
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
-        const body = await req.json();
+        const body = await request.json();
         const updatedTemplate = await templateService.updateTemplate({
-            id: params.id,
+            id,
             ...body
         });
 
@@ -84,10 +86,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-    req: Request,
-    { params }: { params: { id: string } }
-) {
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
     try {
+        const { id } = await params;
         const { userId: clerkId } = await auth();
 
         if (!clerkId) {
@@ -103,7 +106,7 @@ export async function DELETE(
             return new NextResponse('User not found', { status: 404 });
         }
 
-        const template = await templateService.getTemplate(params.id);
+        const template = await templateService.getTemplate(id);
 
         if (!template) {
             return new NextResponse('Not Found', { status: 404 });
@@ -113,7 +116,7 @@ export async function DELETE(
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
-        await templateService.deleteTemplate(params.id);
+        await templateService.deleteTemplate(id);
         return new NextResponse(null, { status: 204 });
     } catch (error) {
         console.error('[TEMPLATE_DELETE]', error);

@@ -5,10 +5,11 @@ import { UserService } from '@/services/user.service';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
-) {
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
     try {
-        console.log(`=== GET /api/posts/${params.id} STARTED ===`);
+        const { id } = await params;
+        console.log(`=== GET /api/posts/${id} STARTED ===`);
 
         // Get the authenticated user
         const { userId: clerkId } = await auth();
@@ -35,7 +36,7 @@ export async function GET(
         }
 
         // Get the post
-        const post = await postService.getPostById(params.id);
+        const post = await postService.getPostById(id);
 
         if (!post) {
             console.log("Post not found, returning 404");
@@ -54,7 +55,7 @@ export async function GET(
             );
         }
 
-        console.log(`=== GET /api/posts/${params.id} COMPLETED ===`);
+        console.log(`=== GET /api/posts/${id} COMPLETED ===`);
         return NextResponse.json({ post });
     } catch (error) {
         console.error('Error fetching post:', error);
@@ -67,10 +68,11 @@ export async function GET(
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
-) {
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
     try {
-        console.log(`=== PATCH /api/posts/${params.id} STARTED ===`);
+        const { id } = await params;
+        console.log(`=== PATCH /api/posts/${id} STARTED ===`);
 
         // Get the authenticated user
         const { userId: clerkId } = await auth();
@@ -97,7 +99,7 @@ export async function PATCH(
         }
 
         // Get the existing post to check ownership
-        const existingPost = await postService.getPostById(params.id);
+        const existingPost = await postService.getPostById(id);
 
         if (!existingPost) {
             console.log("Post not found, returning 404");
@@ -121,11 +123,11 @@ export async function PATCH(
 
         // Update the post
         const updatedPost = await postService.updatePost({
-            id: params.id,
+            id,
             ...body
         });
 
-        console.log(`=== PATCH /api/posts/${params.id} COMPLETED ===`);
+        console.log(`=== PATCH /api/posts/${id} COMPLETED ===`);
         return NextResponse.json({ post: updatedPost });
     } catch (error) {
         console.error('Error updating post:', error);
@@ -138,10 +140,11 @@ export async function PATCH(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
-) {
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
     try {
-        console.log(`=== DELETE /api/posts/${params.id} STARTED ===`);
+        const { id } = await params;
+        console.log(`=== DELETE /api/posts/${id} STARTED ===`);
 
         // Get the authenticated user
         const { userId: clerkId } = await auth();
@@ -168,7 +171,7 @@ export async function DELETE(
         }
 
         // Get the existing post to check ownership
-        const existingPost = await postService.getPostById(params.id);
+        const existingPost = await postService.getPostById(id);
 
         if (!existingPost) {
             console.log("Post not found, returning 404");
@@ -188,9 +191,9 @@ export async function DELETE(
         }
 
         // Delete the post
-        await postService.deletePost(params.id);
+        await postService.deletePost(id);
 
-        console.log(`=== DELETE /api/posts/${params.id} COMPLETED ===`);
+        console.log(`=== DELETE /api/posts/${id} COMPLETED ===`);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error deleting post:', error);

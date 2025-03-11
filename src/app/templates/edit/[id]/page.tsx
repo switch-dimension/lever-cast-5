@@ -4,14 +4,16 @@ import { platformService } from "@/services/platform.service"
 import { templateService } from "@/services/template.service"
 
 interface EditTemplatePageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function EditTemplatePage({ params }: EditTemplatePageProps) {
+  const { id } = await params;
+  
   const [template, platforms] = await Promise.all([
-    templateService.getTemplate(params.id),
+    templateService.getTemplate(id),
     platformService.getAllPlatforms()
   ])
 

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Post, Prisma } from '@prisma/client';
+import { Post, PostContent } from '@prisma/client';
 
 export type PlatformContentInput = {
     platformId: string;
@@ -26,7 +26,7 @@ export type UpdatePostInput = {
 };
 
 export type PostWithPlatformContent = Post & {
-    platformContents?: any[];
+    platformContents?: PostContent[];
 };
 
 export const postService = {

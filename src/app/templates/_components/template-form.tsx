@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Template, SocialMediaPlatform } from "@prisma/client"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -18,13 +18,6 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { toast } from "sonner"
 
 const formSchema = z.object({
@@ -59,34 +52,6 @@ export function TemplateForm({ template, availablePlatforms }: TemplateFormProps
         template,
         prompts: template.prompts
       });
-    }
-  }, [template]);
-
-  const initialPrompts = useMemo(() => {
-    if (!template?.prompts) return {};
-    
-    try {
-      const rawPrompts = template.prompts as Record<string, any>;
-      
-      return Object.entries(rawPrompts).reduce((acc, [platformId, prompt]) => {
-        if (typeof prompt === 'object' && prompt !== null) {
-          acc[platformId] = {
-            content: String((prompt as any).content || ''),
-            type: ((prompt as any).type as PromptType['type']) || 'text',
-            platform: String((prompt as any).platform || 'unknown')
-          };
-        } else {
-          acc[platformId] = {
-            content: String(prompt || ''),
-            type: 'text',
-            platform: 'unknown'
-          };
-        }
-        return acc;
-      }, {} as Record<string, PromptType>);
-    } catch (error) {
-      console.error('Error parsing prompts:', error);
-      return {};
     }
   }, [template]);
 
