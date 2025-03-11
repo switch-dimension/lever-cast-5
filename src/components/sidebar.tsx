@@ -67,7 +67,7 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-                "hover:bg-accent hover:text-black",
+                "hover:bg-zinc-900 hover:text-yellow-500",
                 isActive ? "bg-accent text-black" : "text-yellow-500",
                 isCollapsed && "justify-center"
               )}

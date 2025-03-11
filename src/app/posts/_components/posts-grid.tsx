@@ -5,6 +5,7 @@ import { PostCard } from "./post-card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Post } from "@prisma/client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 type Status = "all" | "published" | "draft"
 type PostWithPlatformContent = Post & {
@@ -85,9 +86,7 @@ export function PostsGrid() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">
-          Loading posts...
-        </div>
+        <LoadingSpinner text="Loading posts..." fullPage />
       ) : (
         <div className="flex flex-col space-y-4">
           {filteredPosts.map((post) => (

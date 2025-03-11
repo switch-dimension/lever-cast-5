@@ -15,6 +15,7 @@ import { useTemplates } from "@/hooks/use-templates"
 import { usePlatforms } from "@/hooks/use-platforms"
 import { transformContent } from "@/app/actions/transform-content"
 import { Post } from "@prisma/client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 const TWITTER_MAX_LENGTH = 280
 
@@ -51,7 +52,6 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [platformContent, setPlatformContent] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   // Fetch post data if postId is provided
   useEffect(() => {
@@ -112,11 +112,6 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
     }
   }, [templates, selectedTemplate, post?.templateId]);
 
-  // Add a useEffect to log platform content changes
-  useEffect(() => {
-    console.log("Current platform content state:", platformContent);
-  }, [platformContent]);
-
   const togglePlatform = (platformId: string) => {
     setSelectedPlatforms((prev: string[]) => {
       if (prev.includes(platformId)) {
@@ -157,7 +152,6 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
 
     setIsGenerating(true)
     setError(null)
-    setDebugInfo(null)
 
     try {
       console.log("Generating content for platforms:", selectedPlatforms)
@@ -172,8 +166,6 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
       const result = await transformContent(content, selectedTemplate, selectedPlatforms)
       console.log("Transform content result:", result)
       
-      setDebugInfo(result)
-
       if (result.success && result.results) {
         console.log("Transform content succeeded, processing results")
         const newPlatformContent: Record<string, string> = {}
@@ -305,14 +297,7 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
   }
 
   if (isLoading || isLoadingPlatforms || isLoadingTemplates) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Loading post data...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner text="Loading post data..." fullPage />
   }
 
   return (
@@ -327,7 +312,12 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
               </SelectTrigger>
               <SelectContent>
                 {isLoadingTemplates ? (
-                  <SelectItem value="loading" disabled>Loading templates...</SelectItem>
+                  <SelectItem value="loading" disabled>
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size={16} text="" />
+                      <span>Loading templates...</span>
+                    </div>
+                  </SelectItem>
                 ) : templates.length === 0 ? (
                   <SelectItem value="none" disabled>No templates available</SelectItem>
                 ) : (
@@ -398,26 +388,17 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
             </div>
           )}
 
-          {debugInfo && (
-            <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted rounded-md">
-              <details>
-                <summary>Debug Info</summary>
-                <pre className="mt-2 overflow-auto max-h-[200px]">
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
-              </details>
-            </div>
-          )}
-
           <ImageUpload onImageChange={setImage} />
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Platforms</label>
-            <div className="flex flex-wrap gap-4 pt-2">
-              {isLoadingPlatforms ? (
-                <div>Loading platforms...</div>
-              ) : (
-                platforms.map((platform) => (
+            {isLoadingPlatforms ? (
+              <div className="flex items-center gap-2 py-2">
+                <LoadingSpinner size={16} text="Loading platforms..." />
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {platforms.map((platform) => (
                   <div key={platform.id} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -431,9 +412,9 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
                       {platform.name}
                     </Label>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Card>

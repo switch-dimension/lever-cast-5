@@ -7,32 +7,37 @@ import { Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { SocialMediaPlatform } from "@prisma/client"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export function TemplatesGrid() {
   const router = useRouter()
   const { templates, isLoading, error } = useTemplates()
   const [platforms, setPlatforms] = useState<SocialMediaPlatform[]>([])
+  const [loadingPlatforms, setLoadingPlatforms] = useState(true)
 
   useEffect(() => {
     const fetchPlatforms = async () => {
       try {
+        setLoadingPlatforms(true)
         const response = await fetch('/api/platforms');
         if (!response.ok) throw new Error('Failed to fetch platforms');
         const data = await response.json();
         setPlatforms(data);
       } catch (error) {
         console.error('Error fetching platforms:', error);
+      } finally {
+        setLoadingPlatforms(false)
       }
     };
     fetchPlatforms();
   }, []);
 
-  if (isLoading) {
-    return <div>Loading templates...</div>
+  if (isLoading || loadingPlatforms) {
+    return <LoadingSpinner text="Loading templates..." fullPage />
   }
 
   if (error) {
-    return <div>Error: {error}</div>
+    return <div className="text-center py-10 text-destructive">Error: {error}</div>
   }
 
   return (
