@@ -7,6 +7,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { PencilIcon, LinkedinIcon, TwitterIcon, FacebookIcon, InstagramIcon } from "lucide-react"
 
+interface PromptData {
+  type: string;
+  content: string;
+  platform: string;
+}
+
 interface TemplateCardProps {
   template: Template & { platforms: SocialMediaPlatform[] }
   availablePlatforms: SocialMediaPlatform[]
@@ -23,7 +29,7 @@ export function TemplateCard({ template, availablePlatforms, onEdit }: TemplateC
   // Parse the prompts data properly
   const getPromptContent = (platformId: string) => {
     try {
-      const promptsData = template.prompts as Record<string, any>;
+      const promptsData = (template.prompts as unknown) as Record<string, PromptData>;
       return promptsData[platformId]?.content || '';
     } catch (error) {
       console.error('Error parsing prompt content:', error);

@@ -3,7 +3,6 @@
 import { generateContent } from '@/lib/openai';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { SocialMediaPlatform, Template } from '@prisma/client';
 
 export interface TransformContentResult {
     platformId: string;
@@ -11,14 +10,12 @@ export interface TransformContentResult {
     transformedContent: string;
 }
 
-type PlatformWithTemplates = SocialMediaPlatform & {
-    templates: Template[];
-};
-
-interface PromptData {
-    type: string;
-    content: string;
-    platform: string;
+interface TemplatePrompts {
+    [platformId: string]: {
+        type: string;
+        content: string;
+        platform: string;
+    };
 }
 
 /**
@@ -32,7 +29,7 @@ export async function transformContent(
     originalContent: string,
     templateId: string,
     platformIds: string[]
-): Promise<{ success: boolean; results?: TransformContentResult[]; error?: string; debug?: any }> {
+): Promise<{ success: boolean; results?: TransformContentResult[]; error?: string; debug?: Record<string, unknown> }> {
     console.log("=== SERVER ACTION: transformContent STARTED ===");
     console.log("Received params:", { originalContent, templateId, platformIds });
 
@@ -120,7 +117,7 @@ export async function transformContent(
                 console.log(`Processing platform: ${platform.name} (${platform.id})`);
 
                 // Extract the prompt from the template
-                const prompts = template.prompts as any;
+                const prompts = template.prompts as TemplatePrompts;
 
                 // Find the prompt for this platform by ID
                 const promptData = prompts[platform.id];

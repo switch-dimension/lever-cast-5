@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation"
 import { EditPostForm } from "../_components/edit-post-form"
 
 interface EditPostPageProps {
