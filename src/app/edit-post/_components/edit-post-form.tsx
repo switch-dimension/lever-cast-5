@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { type Post } from "@/lib/mock-data"
+import { type Post as MockPost } from "@/lib/mock-data"
 import { PlatformPreview } from "./platform-preview"
 import { ImageUpload } from "./image-upload"
 import { LinkedinIcon, TwitterIcon, FacebookIcon, InstagramIcon, Loader2 } from "lucide-react"
@@ -17,6 +17,15 @@ import { usePlatforms } from "@/hooks/use-platforms"
 import { transformContent } from "@/app/actions/transform-content"
 
 const TWITTER_MAX_LENGTH = 280
+
+// Extended Post type to include platformContents
+interface Post extends MockPost {
+  platformContents?: Array<{
+    id: string;
+    platformId: string;
+    content: string;
+  }>;
+}
 
 interface EditPostFormProps {
   post?: Post // Optional for new posts
@@ -52,6 +61,27 @@ export function EditPostForm({ post }: EditPostFormProps) {
     }
   }, [platforms, post])
 
+  // Load platform-specific content when editing an existing post
+  useEffect(() => {
+    if (post?.platformContents && post.platformContents.length > 0) {
+      console.log("Loading platform-specific content from existing post:", post.platformContents);
+      
+      const loadedPlatformContent: Record<string, string> = {};
+      post.platformContents.forEach((pc: any) => {
+        console.log(`Loading content for platform ${pc.platformId}:`, pc.content);
+        loadedPlatformContent[pc.platformId] = pc.content;
+      });
+      
+      console.log("Loaded platform content:", loadedPlatformContent);
+      setPlatformContent(loadedPlatformContent);
+      
+      // Also set selected platforms based on the post's platform content
+      const platformIds = post.platformContents.map((pc: any) => pc.platformId);
+      console.log("Setting selected platforms from post:", platformIds);
+      setSelectedPlatforms(platformIds);
+    }
+  }, [post]);
+
   // Automatically select the first template when templates are loaded
   useEffect(() => {
     if (templates.length > 0 && !selectedTemplate && !post?.template) {
@@ -59,6 +89,11 @@ export function EditPostForm({ post }: EditPostFormProps) {
       setSelectedTemplate(templates[0].id)
     }
   }, [templates, selectedTemplate, post?.template])
+
+  // Add a useEffect to log platform content changes
+  useEffect(() => {
+    console.log("Current platform content state:", platformContent);
+  }, [platformContent]);
 
   const togglePlatform = (platformId: string) => {
     console.log("Toggling platform", { platformId })
@@ -164,6 +199,27 @@ export function EditPostForm({ post }: EditPostFormProps) {
     setError(null)
     
     try {
+      console.log("Saving post with content:", content);
+      console.log("Selected template:", selectedTemplate);
+      console.log("Selected platforms:", selectedPlatforms);
+      console.log("Current platform content state:", platformContent);
+      
+      // Verify platform IDs match between selectedPlatforms and platformContent
+      const platformContentKeys = Object.keys(platformContent);
+      console.log("Platform content keys:", platformContentKeys);
+      const missingPlatforms = selectedPlatforms.filter(id => !platformContentKeys.includes(id));
+      console.log("Platforms without content:", missingPlatforms);
+      
+      // Ensure we're only saving content for selected platforms
+      const platformContents = selectedPlatforms
+        .filter(platformId => platformContent[platformId] && platformContent[platformId].trim() !== '')
+        .map(platformId => ({
+          platformId,
+          content: platformContent[platformId]
+        }));
+      
+      console.log("Platform-specific content to save:", platformContents);
+      
       // Call the API to save the post
       const response = await fetch('/api/posts', {
         method: 'POST',
@@ -174,16 +230,20 @@ export function EditPostForm({ post }: EditPostFormProps) {
           content,
           templateId: selectedTemplate || undefined,
           platformIds: selectedPlatforms,
+          platformContents,
         }),
       });
       
+      const responseData = await response.json();
+      console.log("API response:", responseData);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save post');
+        const errorMessage = responseData.error || 'Failed to save post';
+        console.error("Error saving post:", errorMessage);
+        throw new Error(errorMessage);
       }
       
-      const data = await response.json();
-      console.log('Post saved:', data);
+      console.log('Post saved successfully:', responseData);
       toast.success('Post saved as draft');
       
       // Optionally redirect to posts page

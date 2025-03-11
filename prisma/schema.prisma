@@ -27,16 +27,17 @@ model User {
 }
 
 model Post {
-  id         String    @id @default(cuid())
-  title      String
-  content    String
-  published  Boolean   @default(false)
-  author     User      @relation(fields: [authorId], references: [id])
-  authorId   String
-  template   Template? @relation(fields: [templateId], references: [id])
-  templateId String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id               String        @id @default(cuid())
+  title            String
+  content          String
+  published        Boolean       @default(false)
+  author           User          @relation(fields: [authorId], references: [id])
+  authorId         String
+  template         Template?     @relation(fields: [templateId], references: [id])
+  templateId       String?
+  platformContents PostContent[] // Relation to platform-specific content
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   @@index([authorId])
   @@index([templateId])
@@ -62,6 +63,7 @@ model SocialMediaPlatform {
   name         String                 @unique
   templates    Template[]
   userSettings UserPlatformSettings[]
+  postContents PostContent[] // Relation to post content
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
 }
@@ -78,5 +80,21 @@ model UserPlatformSettings {
 
   @@unique([userId, platformId])
   @@index([userId])
+  @@index([platformId])
+}
+
+// New model for platform-specific content
+model PostContent {
+  id         String              @id @default(cuid())
+  content    String // Platform-specific content
+  post       Post                @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     String
+  platform   SocialMediaPlatform @relation(fields: [platformId], references: [id])
+  platformId String
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@unique([postId, platformId])
+  @@index([postId])
   @@index([platformId])
 }
