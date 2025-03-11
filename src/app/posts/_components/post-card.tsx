@@ -6,29 +6,72 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { MoreVertical, Pencil, Trash2, LinkedinIcon, TwitterIcon } from "lucide-react"
-import { type Post } from "@/lib/mock-data"
 import { useState } from "react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { Post } from "@prisma/client"
 
 interface PostCardProps {
-  post: Post
+  post: Post & {
+    platformContents?: Array<{
+      id: string;
+      content: string;
+      platformId: string;
+      platform?: {
+        id: string;
+        name: string;
+      };
+    }>;
+  };
+  onPostDeleted?: (postId: string) => void;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, onPostDeleted }: PostCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const statusColor = {
-    draft: "bg-muted text-muted-foreground",
-    published: "bg-green-500/10 text-green-500",
-    pending: "bg-yellow-500/10 text-yellow-500",
-  }[post.status]
+  const statusColor = post.published
+    ? "bg-green-500/10 text-green-500"
+    : "bg-muted text-muted-foreground"
 
-  const handleDelete = () => {
-    // In a real app, this would make an API call
-    toast.success("Post deleted successfully")
-    setShowDeleteDialog(false)
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true)
+      const response = await fetch(`/api/posts/${post.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete post')
+      }
+
+      // Call the onPostDeleted callback if provided
+      if (onPostDeleted) {
+        onPostDeleted(post.id)
+      } else {
+        toast.success("Post deleted successfully")
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error)
+      toast.error('Failed to delete post')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
+    }
   }
+
+  // Helper function to get platform names from platformContents
+  const getPlatformNames = (): string[] => {
+    if (!post.platformContents || post.platformContents.length === 0) {
+      return []
+    }
+    
+    return post.platformContents.map(content => 
+      content.platform?.name.toLowerCase() || ''
+    ).filter(Boolean)
+  }
+
+  const platforms = getPlatformNames()
 
   return (
     <>
@@ -37,13 +80,13 @@ export function PostCard({ post }: PostCardProps) {
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className={statusColor}>
-                {post.status}
+                {post.published ? "Published" : "Draft"}
               </Badge>
               <div className="flex gap-1">
-                {post.platforms.includes("linkedin") && (
+                {platforms.includes("linkedin") && (
                   <LinkedinIcon className="h-4 w-4 text-[#0A66C2]" />
                 )}
-                {post.platforms.includes("twitter") && (
+                {platforms.includes("twitter") && (
                   <TwitterIcon className="h-4 w-4 text-[#1DA1F2]" />
                 )}
               </div>
@@ -52,7 +95,7 @@ export function PostCard({ post }: PostCardProps) {
             <p className="text-sm line-clamp-3">{post.content}</p>
             
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{post.template}</span>
+              <span>{post.title || "Untitled"}</span>
               <span>•</span>
               <span>{new Date(post.createdAt).toLocaleDateString()}</span>
             </div>
@@ -95,8 +138,9 @@ export function PostCard({ post }: PostCardProps) {
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
