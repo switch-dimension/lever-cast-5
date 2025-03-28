@@ -1,6 +1,7 @@
 ---
-description: When setting up clerk auth or refactoring it
-globs: src/**/*
+description: 
+globs: 
+alwaysApply: false
 ---
 - authMideware is deprecated use clerkMiddleware 
 - Make sure to protect /app routes as a starting point in the middlewares

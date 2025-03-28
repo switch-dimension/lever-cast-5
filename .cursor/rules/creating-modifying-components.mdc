@@ -1,6 +1,7 @@
 ---
 description: When creating and modifying components
-globs: src/
+globs: 
+alwaysApply: false
 ---
 When creating or modifying components:
 - Use shadcn component library where possible

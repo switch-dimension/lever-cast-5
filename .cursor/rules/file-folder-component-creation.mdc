@@ -1,6 +1,7 @@
 ---
 description: When creating or modifying files, folders and or components
-globs: src/**/*
+globs: 
+alwaysApply: false
 ---
 Follow these instructions general instructions when creating directories, files and or components in nextjs
 

@@ -1,6 +1,7 @@
 ---
-description: When commiting to git use this message best practice
+description: 
 globs: 
+alwaysApply: true
 ---
 ## Commit Reminder
 - When you finish applying changes, the last line of the message should say "💾 Don't forget to commit!" 

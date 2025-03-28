@@ -1,6 +1,7 @@
 ---
-description: When creating a Project Management Document
+description: 
 globs: 
+alwaysApply: false
 ---
 Review the documentation folder the project chat and commit history and fill create a project management doc using the project name and place this in the .documents folder. 
 <sample1>

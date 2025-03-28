@@ -26,9 +26,9 @@ Tasks are ordered chronologically from top to bottom.
 ## Pending Tasks 
 Tasks are prioritized by their order in the associated list. 
 
+- Social media API integrations
 - Edit post improve design of page
 - Social media preview system enhancement
-- Social media API integrations
 - Error handling and loading states
 - Analytics and tracking implementation
 - Mobile responsiveness improvements
