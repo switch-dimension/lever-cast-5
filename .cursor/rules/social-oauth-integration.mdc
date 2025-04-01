@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Use the pre existing pattern of /api and /services to structure the setup 
+Use the current design patterns don't invent new ones 
+
+On the settings page there is a way to connect linkedin to our app.
+This will allow the user to post their generated content to linkedin.
+We need to allow the user to connect  
