@@ -44,6 +44,19 @@ export default function SettingsPage() {
     setMounted(true);
   }, []);
 
+  // Function to fetch social connections
+  const fetchConnections = async () => {
+    try {
+      const response = await fetch('/api/social/connections');
+      if (response.ok) {
+        const data = await response.json();
+        setConnections(data);
+      }
+    } catch (error) {
+      console.error('Error fetching connections:', error);
+    }
+  };
+
   useEffect(() => {
     // Check for success or error messages from OAuth callback
     const success = searchParams.get('success');
@@ -51,6 +64,8 @@ export default function SettingsPage() {
 
     if (success) {
       toast.success(success);
+      // Refresh connections after successful connection
+      fetchConnections();
       // Clear the URL parameters
       router.replace('/settings');
     } else if (error) {
@@ -60,20 +75,8 @@ export default function SettingsPage() {
     }
   }, [searchParams, router]);
 
+  // Initial fetch of connections
   useEffect(() => {
-    // Fetch social connections
-    const fetchConnections = async () => {
-      try {
-        const response = await fetch('/api/social/connections');
-        if (response.ok) {
-          const data = await response.json();
-          setConnections(data);
-        }
-      } catch (error) {
-        console.error('Error fetching connections:', error);
-      }
-    };
-
     fetchConnections();
   }, []);
 
@@ -100,8 +103,8 @@ export default function SettingsPage() {
 
       if (response.ok) {
         toast.success('Successfully disconnected from LinkedIn');
-        // Remove the connection from state
-        setConnections(connections.filter(conn => conn.provider !== provider));
+        // Refresh connections after disconnecting
+        await fetchConnections();
       } else {
         throw new Error('Failed to disconnect');
       }

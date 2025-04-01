@@ -4,14 +4,25 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
     try {
-        const { userId } = getAuth(request);
-        if (!userId) {
+        const { userId: clerkId } = getAuth(request);
+        if (!clerkId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
+        // Get the internal user ID first
+        const user = await prisma.user.findUnique({
+            where: { clerkId },
+            select: { id: true }
+        });
+
+        if (!user) {
+            return new NextResponse('User not found', { status: 404 });
+        }
+
+        // Use the internal user ID to fetch connections
         const connections = await prisma.socialConnection.findMany({
             where: {
-                userId,
+                userId: user.id,
             },
         });
 
