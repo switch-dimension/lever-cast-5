@@ -23,7 +23,7 @@ export const providerConfigs: Record<SocialProvider, ISocialProviderConfig> = {
     [SocialProvider.LINKEDIN]: {
         clientId: process.env.LINKEDIN_CLIENT_ID || '',
         clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
-        scopes: ['w_member_social'],
+        scopes: ['openid', 'profile', 'email', 'w_member_social'],
         authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
         tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
         apiVersion: 'v2',

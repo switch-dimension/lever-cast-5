@@ -120,4 +120,85 @@ export async function GET() {
             { status: 500 }
         );
     }
+}
+
+export async function PUT(request: NextRequest) {
+    try {
+        console.log("=== PUT /api/posts STARTED ===");
+
+        // Get the authenticated user
+        const { userId: clerkId } = await auth();
+        console.log("Authenticated user clerkId:", clerkId);
+
+        if (!clerkId) {
+            console.log("No clerkId found, returning 401");
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        // Get the user from our database using the Clerk ID
+        const user = await UserService.getUserByClerkId(clerkId);
+        console.log("User from database:", user ? { id: user.id, email: user.email } : null);
+
+        if (!user) {
+            console.log("User not found in database, returning 404");
+            return NextResponse.json(
+                { error: 'User not found' },
+                { status: 404 }
+            );
+        }
+
+        // Parse the request body
+        const body = await request.json();
+        const { id, content, templateId, platformIds, platformContents } = body;
+        console.log("Request body:", {
+            id,
+            contentLength: content?.length,
+            templateId,
+            platformIds,
+            platformContentsCount: platformContents?.length
+        });
+
+        if (!id) {
+            console.log("No post ID provided, returning 400");
+            return NextResponse.json(
+                { error: 'Post ID is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!content) {
+            console.log("No content provided, returning 400");
+            return NextResponse.json(
+                { error: 'Content is required' },
+                { status: 400 }
+            );
+        }
+
+        // Update the post
+        console.log("Updating post...");
+        const post = await postService.updatePost({
+            id,
+            content,
+            templateId,
+            platformIds: platformIds || [],
+            platformContents, // Include platform-specific content
+        });
+
+        console.log("Post updated successfully:", {
+            id: post.id,
+            platformContentsCount: post.platformContents?.length
+        });
+
+        console.log("=== PUT /api/posts COMPLETED ===");
+        return NextResponse.json({ post }, { status: 200 });
+    } catch (error) {
+        console.error('Error updating post:', error);
+        return NextResponse.json(
+            { error: 'Failed to update post' },
+            { status: 500 }
+        );
+    }
 } 

@@ -54,15 +54,24 @@ export abstract class BaseSocialProvider implements ISocialProvider {
         });
 
         if (!response.ok) {
+            const responseText = await response.text();
+            console.error("LinkedIn API Error Details:", {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries()),
+                url: response.url,
+                responseBody: responseText,
+            });
+
             switch (response.status) {
                 case 401:
-                    throw new Error(SocialProviderError.UNAUTHORIZED);
+                    throw new Error(`${SocialProviderError.UNAUTHORIZED} - Details: ${responseText}`);
                 case 403:
-                    throw new Error(SocialProviderError.INVALID_CREDENTIALS);
+                    throw new Error(`${SocialProviderError.INVALID_CREDENTIALS} - Details: ${responseText}`);
                 case 429:
-                    throw new Error(SocialProviderError.RATE_LIMITED);
+                    throw new Error(`${SocialProviderError.RATE_LIMITED} - Details: ${responseText}`);
                 default:
-                    throw new Error(SocialProviderError.CONNECTION_FAILED);
+                    throw new Error(`${SocialProviderError.CONNECTION_FAILED} - Details: ${responseText}`);
             }
         }
 

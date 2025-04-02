@@ -37,6 +37,7 @@ model Post {
   template         Template?     @relation(fields: [templateId], references: [id])
   templateId       String?
   platformContents PostContent[] // Relation to platform-specific content
+  metadata         Json? // Stores additional metadata like image URLs
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

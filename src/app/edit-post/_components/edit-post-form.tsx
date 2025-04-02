@@ -16,6 +16,16 @@ import { usePlatforms } from "@/hooks/use-platforms"
 import { transformContent } from "@/app/actions/transform-content"
 import { Post } from "@prisma/client"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const TWITTER_MAX_LENGTH = 280
 
@@ -50,8 +60,10 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
   const [image, setImage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [platformContent, setPlatformContent] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  const [showPublishDialog, setShowPublishDialog] = useState(false)
 
   // Fetch post data if postId is provided
   useEffect(() => {
@@ -202,70 +214,117 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
   
   const isContentTooLong = isTwitterSelected && content.length > TWITTER_MAX_LENGTH
 
-  const handleSavePost = async () => {
+  const handleSavePost = async (): Promise<{ post: Post } | null> => {
     if (!content) {
-      toast.error("Please enter some content to save")
-      return
+      toast.error("Please add some content first")
+      return null
     }
-    
+
+    console.log("=== SAVE POST STARTED ===")
     setIsSaving(true)
     setError(null)
-    
+
     try {
-      console.log("Saving post with content:", content);
-      console.log("Selected template:", selectedTemplate);
-      console.log("Selected platforms:", selectedPlatforms);
-      console.log("Current platform content state:", platformContent);
-      
-      // Verify platform IDs match between selectedPlatforms and platformContent
-      const platformContentKeys = Object.keys(platformContent);
-      console.log("Platform content keys:", platformContentKeys);
-      const missingPlatforms = selectedPlatforms.filter(id => !platformContentKeys.includes(id));
-      console.log("Platforms without content:", missingPlatforms);
-      
-      // Ensure we're only saving content for selected platforms
-      const platformContents = selectedPlatforms
-        .filter(platformId => platformContent[platformId] && platformContent[platformId].trim() !== '')
-        .map(platformId => ({
+      console.log("Saving post with content:", content.substring(0, 20) + "...")
+
+      // Prepare platform-specific content based on selection
+      console.log("Selected template:", selectedTemplate)
+      console.log("Selected platforms:", selectedPlatforms)
+
+      // Create an array of platform-specific content objects
+      const existingPlatformContentKeys = Object.keys(platformContent || {})
+      console.log("Platform content keys:", existingPlatformContentKeys)
+
+      // Find platforms that don't have content yet
+      const platformsWithoutContent = selectedPlatforms.filter(
+        (platformId) => !existingPlatformContentKeys.includes(platformId)
+      )
+      console.log("Platforms without content:", platformsWithoutContent)
+
+      // Create platform content for all selected platforms if missing
+      // For platforms without specific content, use the main content
+      const platformContentsToSave = existingPlatformContentKeys
+        .filter((platformId) => selectedPlatforms.includes(platformId))
+        .map((platformId) => ({
           platformId,
-          content: platformContent[platformId]
-        }));
+          content: platformContent[platformId],
+        }))
       
-      console.log("Platform-specific content to save:", platformContents);
+      // Add default content for platforms without specific content
+      platformsWithoutContent.forEach(platformId => {
+        platformContentsToSave.push({
+          platformId,
+          content: content // Use the main content as default
+        });
+      });
+
+      console.log("Platform-specific content to save:", platformContentsToSave.length)
+      
+      // Prepare the request payload
+      const savePayload = {
+        id: post?.id,
+        content,
+        templateId: selectedTemplate || undefined,
+        platformIds: selectedPlatforms,
+        platformContents: platformContentsToSave,
+      };
+      
+      // Log the full payload for debugging
+      console.log("Full save payload:", JSON.stringify(savePayload, null, 2));
       
       // Call the API to save the post
       const response = await fetch('/api/posts', {
-        method: 'POST',
+        method: post?.id ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          content,
-          templateId: selectedTemplate || undefined,
-          platformIds: selectedPlatforms,
-          platformContents,
-        }),
+        body: JSON.stringify(savePayload),
       });
       
-      const responseData = await response.json();
-      console.log("API response:", responseData);
-      
       if (!response.ok) {
-        const errorMessage = responseData.error || 'Failed to save post';
-        console.error("Error saving post:", errorMessage);
-        throw new Error(errorMessage);
+        console.error("Server returned error status:", response.status, response.statusText);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
       
-      console.log('Post saved successfully:', responseData);
-      toast.success('Post saved as draft');
+      // Get the response body as text first
+      const responseText = await response.text();
+      console.log("Raw server response:", responseText);
       
-      // Optionally redirect to posts page
-      // router.push('/posts');
+      if (!responseText || responseText.trim() === '') {
+        console.error("Server returned empty response");
+        throw new Error("Server returned empty response");
+      }
+      
+      // Try to parse the JSON response
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log("Parsed server response:", responseData);
+      } catch (parseError) {
+        console.error("Failed to parse server response:", parseError);
+        throw new Error("Server returned an invalid response format");
+      }
+      
+      console.log('Post saved successfully:', responseData.post?.id);
+      
+      // Update the post state with the response data
+      if (responseData.post) {
+        setPost(responseData.post);
+      } else {
+        console.warn("Server response did not include post data");
+      }
+      
+      toast.success('Post saved as draft');
+      console.log("=== SAVE POST COMPLETED ===");
+      
+      // Return the response data for use by other functions
+      return responseData;
     } catch (error) {
       console.error('Error saving post:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to save post';
       setError(errorMessage);
       toast.error(errorMessage);
+      throw error; // Re-throw the error for handling by callers
     } finally {
       setIsSaving(false);
     }
@@ -296,12 +355,240 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
     }
   }
 
+  const handlePublishPosts = async () => {
+    if (!content || selectedPlatforms.length === 0) {
+      toast.error("Please select content and platforms to publish")
+      return
+    }
+    
+    console.log("=== START PUBLISH POSTS ===");
+    console.log("Initial state:", { 
+      content: content.substring(0, 50) + "...", 
+      selectedPlatforms,
+      post: post ? { id: post.id, content: post.content?.substring(0, 50) + "..." } : null
+    });
+    
+    setIsPublishing(true)
+    setError(null)
+    
+    try {
+      // Get the selected platform names for the confirmation message
+      const selectedPlatformNames = platforms
+        .filter(platform => selectedPlatforms.includes(platform.id))
+        .map(platform => platform.name)
+
+      console.log("Publishing posts to platforms:", selectedPlatformNames)
+      
+      // First, save the post to ensure we have the latest version with all platform content
+      let postId = post?.id;
+      
+      // First ensure we have content for each selected platform
+      // If platformContent is empty, we need to generate it
+      if (Object.keys(platformContent || {}).length === 0) {
+        // For each selected platform, add the main content as the platform content
+        const newPlatformContent: Record<string, string> = {};
+        selectedPlatforms.forEach(platformId => {
+          newPlatformContent[platformId] = content;
+        });
+        
+        console.log("Generated default platform content:", newPlatformContent);
+        setPlatformContent(newPlatformContent);
+        
+        // Add a small delay to ensure state updates
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      try {
+        console.log("Saving post before publishing...");
+        const saveResult = await handleSavePost();
+        console.log("Save result:", saveResult ? "Success" : "No result");
+        
+        if (saveResult?.post) {
+          postId = saveResult.post.id;
+          console.log("Post saved successfully, ID:", postId);
+        } else {
+          console.log("Save returned success but no post data");
+        }
+      } catch (error) {
+        console.error("Failed to save post before publishing:", error);
+        throw new Error("Failed to save post before publishing");
+      }
+      
+      // If we don't have a post ID yet (new post), we can't publish
+      if (!postId) {
+        console.error("No post ID available for publishing");
+        throw new Error("Post must be saved before publishing")
+      }
+      
+      // Call the API to publish the post
+      console.log(`Calling publish API with postId: ${postId}`);
+      
+      // Show a toast notification that publishing is in progress
+      const publishingToast = toast.loading(
+        `Publishing to ${selectedPlatformNames.join(", ")}...`, 
+        { duration: 60000 }  // Long duration as publishing might take time
+      );
+      
+      // Enable test mode for debugging
+      const useTestMode = false; // Set to false for real publishing
+      
+      // Using the real LinkedIn publishing endpoint
+      const response = await fetch('/api/publish-post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          postId: postId,
+          platformIds: selectedPlatforms,
+          testMode: useTestMode // Test mode flag for debugging
+        }),
+      });
+      
+      // Get the response body as text first
+      const responseText = await response.text();
+      console.log("Raw publish API response:", responseText);
+      
+      if (!responseText || responseText.trim() === '') {
+        console.error("Server returned empty response");
+        throw new Error("Server returned empty response");
+      }
+      
+      // Try to parse the JSON response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Parsed publish API response:", data);
+      } catch (parseError) {
+        console.error("Error parsing publish API response:", parseError);
+        throw new Error("Server returned an invalid response format");
+      }
+      
+      // Dismiss the loading toast
+      toast.dismiss(publishingToast);
+      
+      if (!response.ok) {
+        console.error("Publish API returned error status:", response.status);
+        const errorDetail = data?.error || data?.message || "Unknown error";
+        throw new Error(`Failed to publish posts: ${errorDetail} (Status: ${response.status})`);
+      }
+      
+      // Handle the response based on success status
+      if (data.status === "success") {
+        toast.success(data.message || "All posts published successfully")
+        
+        // Show a success message with the platforms that were published to
+        toast.success(`Your content is now live on ${selectedPlatformNames.join(", ")}!`);
+      } else if (data.status === "partial") {
+        toast.warning(data.message || "Some posts were published successfully")
+        
+        // Show detailed results
+        const successPlatforms: string[] = [];
+        const failedPlatforms: {name: string, error: string}[] = [];
+        
+        data.results?.forEach((result: any) => {
+          if (result.success) {
+            successPlatforms.push(result.platformName);
+          } else {
+            failedPlatforms.push({
+              name: result.platformName || "Unknown platform",
+              error: result.message || "Unknown error"
+            });
+          }
+        });
+        
+        if (successPlatforms.length > 0) {
+          toast.success(`Successfully published to: ${successPlatforms.join(", ")}`);
+        }
+        
+        failedPlatforms.forEach(platform => {
+          toast.error(`Failed to publish to ${platform.name}: ${platform.error}`);
+        });
+      } else {
+        throw new Error(data.message || "Failed to publish posts")
+      }
+      
+      // Close the dialog
+      setShowPublishDialog(false)
+      console.log("=== END PUBLISH POSTS: SUCCESS ===");
+      
+    } catch (error) {
+      console.error('Error publishing posts:', error);
+      
+      // Create a more detailed error message
+      let errorMessage = 'Failed to publish posts';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Add stack trace to console for debugging
+        console.error('Error stack:', error.stack);
+      }
+      
+      // Log any additional context that might help debug
+      console.error('Publishing context:', {
+        postId: postId || 'unknown',
+        selectedPlatforms: selectedPlatforms || [],
+        platformCount: selectedPlatforms?.length || 0,
+        platformNames: platforms
+          .filter(p => selectedPlatforms?.includes(p.id))
+          .map(p => p.name)
+      });
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.log("=== END PUBLISH POSTS: ERROR ===");
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
   if (isLoading || isLoadingPlatforms || isLoadingTemplates) {
     return <LoadingSpinner text="Loading post data..." fullPage />
   }
 
   return (
     <div className="space-y-6">
+      <AlertDialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Publication</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to publish your content to the following platforms:
+            </AlertDialogDescription>
+            <ul className="mt-2 list-disc pl-5">
+              {platforms
+                .filter(platform => selectedPlatforms.includes(platform.id))
+                .map(platform => (
+                  <li key={platform.id} className="flex items-center gap-2">
+                    {getPlatformIcon(platform.name)}
+                    {platform.name}
+                  </li>
+                ))}
+            </ul>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to continue?
+            </p>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handlePublishPosts}
+              disabled={isPublishing}
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                "Publish"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
       <Card className="p-6">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -473,14 +760,20 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
           Cancel
         </Button>
         <Button
-          onClick={handleSave}
+          onClick={handleSavePost}
           disabled={!content || selectedPlatforms.length === 0 || isContentTooLong || isSaving}
         >
           {isSaving ? (
             <>Saving...</>
           ) : (
-            <>{post ? "Save Changes" : "Create Post"}</>
+            <>Save Post</>
           )}
+        </Button>
+        <Button
+          onClick={() => setShowPublishDialog(true)}
+          disabled={!content || selectedPlatforms.length === 0 || isContentTooLong || isSaving}
+        >
+          Publish Posts
         </Button>
       </div>
     </div>

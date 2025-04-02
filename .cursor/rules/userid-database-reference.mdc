@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- Use the User Table "id" for referencing the user not the "clerkId"

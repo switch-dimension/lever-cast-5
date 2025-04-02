@@ -136,45 +136,107 @@ export class LinkedInProvider extends BaseSocialProvider {
     async createPost(connection: ISocialConnection, post: ISocialPost): Promise<any> {
         const url = `${this.API_BASE}/${this.API_VERSION}/ugcPosts`;
 
-        // Extract the numeric ID from our generated providerAccountId
-        const authorId = connection.providerAccountId.split('_')[1];
+        // First, get the user's LinkedIn ID from their profile
+        console.log("=== LINKEDIN PROVIDER: createPost STARTED ===");
+        console.log("LinkedIn API URL:", url);
+        console.log("Post content:", post.content);
+        console.log("Media URLs:", post.mediaUrls);
 
-        const shareContent: LinkedInShareContent = {
-            shareCommentary: {
-                text: post.content,
-            },
-            shareMediaCategory: 'NONE',
-        };
+        try {
+            // First, get the user's LinkedIn ID from their profile using /userinfo endpoint
+            console.log("Fetching LinkedIn user profile to get the user ID");
+            const profileUrl = `${this.API_BASE}/${this.API_VERSION}/userinfo`;
 
-        if (post.mediaUrls && post.mediaUrls.length > 0) {
-            shareContent.shareMediaCategory = 'IMAGE';
-            shareContent.media = post.mediaUrls.map(url => ({
-                status: 'READY',
-                originalUrl: url,
-            }));
+            try {
+                const profileResponse = await this.fetchWithAuth(
+                    profileUrl,
+                    { method: 'GET' },
+                    connection.accessToken
+                );
+
+                if (!profileResponse.ok) {
+                    const errorText = await profileResponse.text();
+                    console.error("LinkedIn profile fetch failed:", {
+                        status: profileResponse.status,
+                        statusText: profileResponse.statusText,
+                        errorText
+                    });
+                    throw new Error(`Failed to fetch LinkedIn profile: ${errorText}`);
+                }
+
+                const profile = await profileResponse.json();
+                console.log("LinkedIn profile response:", profile);
+
+                // The user ID is in the 'sub' field for /userinfo endpoint
+                if (!profile.sub) {
+                    throw new Error("LinkedIn profile ID not found in the userinfo response");
+                }
+
+                const authorId = profile.sub;
+                console.log("Using LinkedIn profile ID for post:", authorId);
+
+                const shareContent: LinkedInShareContent = {
+                    shareCommentary: {
+                        text: post.content,
+                    },
+                    shareMediaCategory: 'NONE',
+                };
+
+                if (post.mediaUrls && post.mediaUrls.length > 0) {
+                    shareContent.shareMediaCategory = 'IMAGE';
+                    shareContent.media = post.mediaUrls.map(url => ({
+                        status: 'READY',
+                        originalUrl: url,
+                    }));
+                }
+
+                const postBody = {
+                    author: `urn:li:person:${authorId}`,
+                    lifecycleState: 'PUBLISHED',
+                    specificContent: {
+                        'com.linkedin.ugc.ShareContent': shareContent,
+                    },
+                    visibility: {
+                        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+                    },
+                };
+
+                console.log("Sending LinkedIn post with payload:", JSON.stringify(postBody, null, 2));
+                const response = await this.fetchWithAuth(
+                    url,
+                    {
+                        method: 'POST',
+                        body: JSON.stringify(postBody),
+                    },
+                    connection.accessToken
+                );
+
+                console.log("LinkedIn API response status:", response.status);
+                console.log("LinkedIn API response status text:", response.statusText);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("LinkedIn post creation failed:", {
+                        status: response.status,
+                        statusText: response.statusText,
+                        errorText
+                    });
+                    throw new Error(`Failed to create LinkedIn post: ${errorText}`);
+                }
+
+                const responseData = await response.json();
+                console.log("LinkedIn post creation succeeded. Full response:", JSON.stringify(responseData, null, 2));
+                console.log("=== LINKEDIN PROVIDER: createPost COMPLETED ===");
+                return responseData;
+
+            } catch (error) {
+                console.error("Error in LinkedIn post creation:", error);
+                throw error;
+            }
+        } catch (error) {
+            console.error("Error in LinkedIn post creation:", error);
+            throw error;
         }
-
-        const postBody = {
-            author: `urn:li:person:${authorId}`,
-            lifecycleState: 'PUBLISHED',
-            specificContent: {
-                'com.linkedin.ugc.ShareContent': shareContent,
-            },
-            visibility: {
-                'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
-            },
-        };
-
-        const response = await this.fetchWithAuth(
-            url,
-            {
-                method: 'POST',
-                body: JSON.stringify(postBody),
-            },
-            connection.accessToken
-        );
-
-        return response.json();
     }
 
     private async exchangeCodeForToken(code: string): Promise<LinkedInTokenResponse> {
