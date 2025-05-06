@@ -3,7 +3,7 @@
 
 ## Design Mode
 - We are in design mode we are protoyping the frontend don't connect to backend yet 
-- Link all buttons and pages to simulate navigation 
+- Link all buttons and pages to simulate navigation. test. 
 
 ## Design Prompts
 - Give me an alternate treatment for this component 
