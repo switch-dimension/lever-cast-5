@@ -27,7 +27,7 @@ import { SocialProvider } from "@/types/social";
 interface SocialConnection {
   provider: string;
   providerAccountId: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export default function SettingsPage() {
@@ -94,7 +94,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDisconnect = async (provider: string) => {
+  const handleDisconnect = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/social/linkedin/disconnect`, {
@@ -213,7 +213,7 @@ export default function SettingsPage() {
               <Button
                 variant={isConnected(SocialProvider.LINKEDIN) ? "destructive" : "outline"}
                 onClick={() => isConnected(SocialProvider.LINKEDIN) 
-                  ? handleDisconnect(SocialProvider.LINKEDIN)
+                  ? handleDisconnect()
                   : handleConnect(SocialProvider.LINKEDIN)
                 }
                 disabled={isLoading}

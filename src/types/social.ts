@@ -30,7 +30,7 @@ export interface ISocialConnection {
     refreshToken?: string;
     tokenExpiry?: Date;
     providerAccountId: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -39,7 +39,16 @@ export interface ISocialPost {
     content: string;
     mediaUrls?: string[];
     scheduledTime?: Date;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
+}
+
+export interface PostPublishResponse {
+    id: string;
+    status: string;
+    message?: string;
+    data?: {
+        postId?: string;
+    };
 }
 
 export interface ISocialProvider {
@@ -47,5 +56,5 @@ export interface ISocialProvider {
     handleCallback(code: string, state: string): Promise<ISocialConnection>;
     disconnect(connection: ISocialConnection): Promise<void>;
     refreshToken(connection: ISocialConnection): Promise<Partial<ISocialConnection>>;
-    createPost(connection: ISocialConnection, post: ISocialPost): Promise<any>;
+    createPost(connection: ISocialConnection, post: ISocialPost): Promise<PostPublishResponse>;
 } 

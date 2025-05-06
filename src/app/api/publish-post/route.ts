@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { SocialProvider, ISocialConnection } from "@/types/social";
 import { SocialProviderFactory } from "@/services/social/providers/factory";
 import { providerConfigs } from "@/services/social/config/providers";
-import { Post, Prisma } from "@prisma/client";
 
 /**
  * Main endpoint for publishing posts to social media platforms.
@@ -37,12 +36,52 @@ interface PublishRequest {
     testMode?: boolean;
 }
 
+interface SocialConnectionType {
+    id: string;
+    userId: string;
+    provider: string;
+    accessToken: string;
+    refreshToken?: string | null;
+    tokenExpiry?: Date | null;
+    providerAccountId: string;
+    metadata?: Record<string, unknown> | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+interface PostMetadata {
+    imageUrl?: string;
+    [key: string]: unknown;
+}
+
+interface PlatformContent {
+    id: string;
+    postId: string;
+    content: string;
+    platformId: string;
+    platform: {
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+interface PostWithContent {
+    id: string;
+    authorId: string;
+    metadata: PostMetadata | null;
+    platformContents: PlatformContent[];
+}
+
 // Create a simple API route that should work with Next.js App Router
 export async function POST(request: NextRequest) {
     console.log("=== POST /api/publish-post STARTED ===");
 
     // Add detailed logging for each step to track where failures might occur
-    let debugSteps = {
+    const debugSteps = {
         authStarted: false,
         authCompleted: false,
         parsingRequestBody: false,
@@ -134,7 +173,7 @@ export async function POST(request: NextRequest) {
                     }
                 }
             }
-        }));
+        })) as PostWithContent | null;
 
         if (!post) {
             console.log("Post not found:", postId);
@@ -155,12 +194,13 @@ export async function POST(request: NextRequest) {
 
         // Get the user's social connections
         console.log("Fetching social connections for user:", user.id);
-        const connections = await errorWrapper(prisma.socialConnection.findMany({
-            where: {
-                userId: user.id,
-                provider: SocialProvider.LINKEDIN // For now, only LinkedIn is supported
-            }
-        }));
+        const connections: SocialConnectionType[] = await errorWrapper(prisma.$queryRaw`
+            SELECT id, "userId", provider, "accessToken", "refreshToken", 
+                   "tokenExpiry", "providerAccountId", metadata, "createdAt", "updatedAt"
+            FROM "SocialConnection"
+            WHERE "userId" = ${user.id}
+            AND provider = ${SocialProvider.LINKEDIN}
+        `);
 
         console.log("Found social connections:", connections.length);
 
@@ -220,9 +260,8 @@ export async function POST(request: NextRequest) {
                     continue;
                 }
 
-                // Get the LinkedIn connection
-                console.log("Looking for LinkedIn connection");
-                const connection = connections.find(c => c.provider === SocialProvider.LINKEDIN);
+                // Find LinkedIn connection with proper type
+                const connection = connections.find((c: SocialConnectionType) => c.provider === SocialProvider.LINKEDIN);
 
                 if (!connection) {
                     console.log("No LinkedIn connection found");
@@ -266,7 +305,7 @@ export async function POST(request: NextRequest) {
                     refreshToken: connection.refreshToken || undefined,
                     tokenExpiry: connection.tokenExpiry || undefined,
                     providerAccountId: connection.providerAccountId,
-                    metadata: connection.metadata as Record<string, any> | undefined,
+                    metadata: connection.metadata as PostMetadata | undefined,
                     createdAt: connection.createdAt,
                     updatedAt: connection.updatedAt
                 };
@@ -275,7 +314,7 @@ export async function POST(request: NextRequest) {
                     // Get image URL from metadata if available
                     let imageUrl = null;
                     try {
-                        const postMetadata = post.metadata as Record<string, any> | null;
+                        const postMetadata = post.metadata as PostMetadata | null;
                         if (postMetadata?.imageUrl) {
                             imageUrl = postMetadata.imageUrl;
                         }
@@ -328,7 +367,7 @@ export async function POST(request: NextRequest) {
                         platformName: platform.name,
                         success: true,
                         message: "Post published successfully to LinkedIn",
-                        data: { postId: publishResult?.id || publishResult?.postId || null }
+                        data: { postId: publishResult?.id || publishResult?.data?.postId || null }
                     });
 
                 } catch (publishError) {
@@ -390,18 +429,22 @@ export async function POST(request: NextRequest) {
             debugSteps
         });
 
-    } catch (error) {
-        console.error("Error in publish-post API:", error);
-
-        return NextResponse.json(
-            {
-                error: "Failed to publish post",
-                message: error instanceof Error ? error.message : "Unknown error",
-                stack: error instanceof Error ? error.stack : null,
-                status: "error",
-                debugSteps
-            },
-            { status: 500 }
-        );
+    } catch (error: unknown) {
+        const errorResponse: {
+            error: string;
+            message: string;
+            stack?: string;
+            status: string;
+            debugSteps: Record<string, boolean>;
+        } = {
+            error: "Failed to publish post",
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            status: "error",
+            debugSteps
+        };
+        
+        console.error("Error in publish-post API:", errorResponse);
+        return NextResponse.json(errorResponse, { status: 500 });
     }
 } 

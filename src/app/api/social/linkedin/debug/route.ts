@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
+
 import { SocialProvider } from '@/types/social';
 import { providerConfigs } from '@/services/social/config/providers';
 

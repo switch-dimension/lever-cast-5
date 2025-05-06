@@ -29,6 +29,16 @@ import {
 
 const TWITTER_MAX_LENGTH = 280
 
+interface PublishResult {
+  platformId: string;
+  platformName: string;
+  success: boolean;
+  message?: string;
+  data?: {
+    postId?: string;
+  };
+}
+
 // Extended Post type to include platformContents
 interface PostWithPlatformContent extends Post {
   platformContents?: Array<{
@@ -330,16 +340,6 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
     }
   };
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    toast.success(post ? "Post updated successfully" : "Post created successfully")
-    router.push("/posts")
-    router.refresh()
-  }
-
   const getPlatformIcon = (platformName: string) => {
     switch (platformName.toLowerCase()) {
       case 'linkedin':
@@ -486,7 +486,7 @@ export function EditPostForm({ post: initialPost, postId }: EditPostFormProps) {
         const successPlatforms: string[] = [];
         const failedPlatforms: {name: string, error: string}[] = [];
         
-        data.results?.forEach((result: any) => {
+        data.results?.forEach((result: PublishResult) => {
           if (result.success) {
             successPlatforms.push(result.platformName);
           } else {

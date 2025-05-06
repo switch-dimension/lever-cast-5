@@ -1,6 +1,7 @@
 import { BaseSocialProvider } from './base';
-import { ISocialConnection, ISocialPost, SocialProvider } from '@/types/social';
+import { ISocialConnection, ISocialPost, SocialProvider, PostPublishResponse } from '@/types/social';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 interface LinkedInTokenResponse {
     access_token: string;
@@ -53,12 +54,12 @@ export class LinkedInProvider extends BaseSocialProvider {
         const connection = await prisma.socialConnection.upsert({
             where: {
                 userId_provider: {
-                    userId: user.id, // Use internal user ID instead of Clerk ID
+                    userId: user.id,
                     provider: SocialProvider.LINKEDIN,
                 },
             },
             create: {
-                userId: user.id, // Use internal user ID instead of Clerk ID
+                userId: user.id,
                 provider: SocialProvider.LINKEDIN,
                 accessToken: tokenResponse.access_token,
                 refreshToken: tokenResponse.refresh_token,
@@ -67,7 +68,7 @@ export class LinkedInProvider extends BaseSocialProvider {
                 metadata: {
                     connectedAt: new Date().toISOString(),
                     scope: 'w_member_social',
-                },
+                } as Prisma.InputJsonValue,
             },
             update: {
                 accessToken: tokenResponse.access_token,
@@ -76,7 +77,7 @@ export class LinkedInProvider extends BaseSocialProvider {
                 metadata: {
                     updatedAt: new Date().toISOString(),
                     scope: 'w_member_social',
-                },
+                } as Prisma.InputJsonValue,
             },
         });
 
@@ -90,7 +91,7 @@ export class LinkedInProvider extends BaseSocialProvider {
             refreshToken: connection.refreshToken || undefined,
             tokenExpiry: connection.tokenExpiry || undefined,
             providerAccountId: connection.providerAccountId,
-            metadata: connection.metadata as Record<string, any> | undefined,
+            metadata: connection.metadata as Record<string, unknown> | undefined,
             createdAt: connection.createdAt,
             updatedAt: connection.updatedAt,
         };
@@ -133,7 +134,7 @@ export class LinkedInProvider extends BaseSocialProvider {
         });
     }
 
-    async createPost(connection: ISocialConnection, post: ISocialPost): Promise<any> {
+    async createPost(connection: ISocialConnection, post: ISocialPost): Promise<PostPublishResponse> {
         const url = `${this.API_BASE}/${this.API_VERSION}/ugcPosts`;
 
         // First, get the user's LinkedIn ID from their profile
@@ -227,7 +228,16 @@ export class LinkedInProvider extends BaseSocialProvider {
                 const responseData = await response.json();
                 console.log("LinkedIn post creation succeeded. Full response:", JSON.stringify(responseData, null, 2));
                 console.log("=== LINKEDIN PROVIDER: createPost COMPLETED ===");
-                return responseData;
+
+                // Return the response in the correct format
+                return {
+                    id: responseData.id,
+                    status: 'published',
+                    message: 'Post published successfully',
+                    data: {
+                        postId: responseData.id
+                    }
+                };
 
             } catch (error) {
                 console.error("Error in LinkedIn post creation:", error);

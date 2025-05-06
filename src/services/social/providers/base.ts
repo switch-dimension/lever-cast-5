@@ -1,4 +1,4 @@
-import { ISocialProvider, ISocialProviderConfig, ISocialConnection, ISocialPost, SocialProviderError } from '@/types/social';
+import { ISocialProvider, ISocialProviderConfig, ISocialConnection, ISocialPost, SocialProviderError, PostPublishResponse } from '@/types/social';
 
 export abstract class BaseSocialProvider implements ISocialProvider {
     protected config: ISocialProviderConfig;
@@ -37,7 +37,7 @@ export abstract class BaseSocialProvider implements ISocialProvider {
 
     abstract disconnect(connection: ISocialConnection): Promise<void>;
 
-    abstract createPost(connection: ISocialConnection, post: ISocialPost): Promise<any>;
+    abstract createPost(connection: ISocialConnection, post: ISocialPost): Promise<PostPublishResponse>;
 
     protected async fetchWithAuth(
         url: string,
